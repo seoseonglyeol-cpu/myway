@@ -1,6 +1,7 @@
 import re
 from datetime import date
 import streamlit as st
+from utils.session import load_session, clear_session, login_user, register_user
 
 st.set_page_config(
     page_title="마이웨이",
@@ -15,8 +16,16 @@ label, .stTextInput label, .stSelectbox label,
 .stNumberInput label, .stTextArea label,
 .stSlider label, .stRadio label,
 .stCheckbox label, .stDateInput label,
-p, span, div {
+p, span {
     color: #111827 !important;
+}
+
+/* 사이드바 안에서는 흰색 유지 */
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] div {
+    color: #FFFFFF !important;
 }
 .stApp {
     background-color: #F5F5F5;
@@ -290,41 +299,86 @@ def _thin_bar(pct: float, bg: str = "#2C2C2E", fg: str = "#02C39A") -> str:
     )
 
 
-# ── 세션 초기화 ──────────────────────────────────────────────
+# ── 세션 초기화 + 파일에서 복원 ─────────────────────────────
 for _k in ["user_profile", "analysis_result"]:
     if _k not in st.session_state:
         st.session_state[_k] = None
 
+load_session()
+
 # ── 사이드바 ─────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style="text-align:center; padding:24px 0 10px;">
-        <div style="font-size:22px; font-weight:900; color:#fff; letter-spacing:-0.5px;">마이웨이</div>
-        <div style="font-size:11px; color:#02C39A; font-weight:600; margin-top:4px; letter-spacing:1px;">MY WAY</div>
+    <div style="text-align:center; padding: 20px 0;">
+        <div style="font-size:28px; font-weight:900;
+             color:#FFFFFF;">마이웨이</div>
+        <div style="font-size:11px; font-weight:600;
+             color:#02C39A; letter-spacing:3px;">MY WAY</div>
     </div>
     """, unsafe_allow_html=True)
+
     st.divider()
-    page = st.radio("메뉴", [
-        "홈",
-        "스펙 입력",
-        "스펙 분석",
-        "로드맵",
-        "공부 스케줄",
-        "교재·강의 추천",
-        "비용 계산기",
-        "채용공고 탐색",
+
+    page = st.radio("", [
+        "홈", "스펙 입력", "스펙 분석", "로드맵",
+        "공부 스케줄", "교재·강의 추천", "비용 계산기", "채용공고 탐색"
     ], key="main_nav", label_visibility="collapsed")
+
     st.divider()
-    if st.session_state.user_profile:
-        p = st.session_state.user_profile
+
+    if st.session_state.get("logged_in"):
+        # 프로필 카드
+        current_user = st.session_state.get("current_user", "")
+        profile = st.session_state.get("user_profile")
         st.markdown(f"""
-        <div style="background:#2C2C2E; border-radius:10px; padding:12px; margin-top:4px;">
-            <div style="font-size:10px; color:#02C39A; font-weight:700; margin-bottom:4px; letter-spacing:0.5px;">PROFILE</div>
-            <div style="font-size:14px; color:#fff; font-weight:700;">{p['name']}</div>
-            <div style="font-size:11px; color:#666; margin-top:2px;">{p['target_job']}</div>
+        <div style="background:#2D2D2D; border-radius:12px;
+             padding:16px; margin-top:4px;">
+            <div style="font-size:10px; color:#02C39A;
+                 font-weight:700; letter-spacing:1px;">PROFILE</div>
+            <div style="font-size:16px; font-weight:700;
+                 color:#FFFFFF; margin-top:4px;">{current_user}</div>
+            <div style="font-size:12px; color:#AAAAAA; margin-top:2px;">
+                 {profile['target_job'] if profile else ''}</div>
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("로그아웃", use_container_width=True):
+            clear_session()
+            st.rerun()
+    else:
+        # 로그인 / 회원가입
+        mode = st.radio("", ["로그인", "회원가입"], horizontal=True,
+                        label_visibility="collapsed", key="auth_mode")
+        username = st.text_input("아이디", key="auth_user", label_visibility="collapsed",
+                                 placeholder="아이디")
+        password = st.text_input("비밀번호", type="password", key="auth_pw",
+                                 label_visibility="collapsed", placeholder="비밀번호")
+        if mode == "로그인":
+            if st.button("로그인", use_container_width=True, type="primary"):
+                ok, msg = login_user(username, password)
+                if ok:
+                    st.rerun()
+                else:
+                    st.error(msg)
+        else:
+            if st.button("회원가입", use_container_width=True, type="primary"):
+                ok, msg = register_user(username, password)
+                if ok:
+                    st.success(msg)
+                else:
+                    st.error(msg)
 
+
+# ── 로그인 필요 페이지 잠금 ──────────────────────────────────
+PROTECTED = {"스펙 입력", "스펙 분석", "로드맵", "공부 스케줄",
+             "교재·강의 추천", "비용 계산기", "채용공고 탐색"}
+
+if page in PROTECTED and not st.session_state.get("logged_in"):
+    st.title(page)
+    st.divider()
+    st.warning("로그인이 필요한 서비스입니다.")
+    st.info("왼쪽 사이드바에서 로그인 또는 회원가입해주세요.")
+    st.stop()
 
 # ── 홈 ───────────────────────────────────────────────────────
 if page == "홈":

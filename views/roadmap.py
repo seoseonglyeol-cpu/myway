@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.claude_api import generate_roadmap
+from utils.session import save_session
 
 def show():
     st.title("맞춤 로드맵")
@@ -17,6 +18,7 @@ def show():
         with st.spinner("AI가 로드맵을 만들고 있습니다..."):
             result = generate_roadmap(profile)
             st.session_state.roadmap_result = result
+            save_session()
 
     if st.session_state.get("roadmap_result"):
         st.divider()

@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import date
 from utils.claude_api import generate_schedule
+from utils.session import save_session
 
 def show():
     st.title("공부 스케줄")
@@ -35,6 +36,7 @@ def show():
             result = generate_schedule(profile, target, str(deadline))
             st.session_state.schedule_result = result
             st.session_state.schedule_dday = (deadline - date.today()).days
+            save_session()
 
     if st.session_state.get("schedule_result"):
         st.divider()

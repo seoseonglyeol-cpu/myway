@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.claude_api import analyze_spec
+from utils.session import save_session
 
 def show():
     st.title("스펙 분석")
@@ -24,6 +25,7 @@ def show():
         with st.spinner("AI가 분석 중입니다..."):
             result = analyze_spec(profile)
             st.session_state.analysis_result = result
+            save_session()
 
     if st.session_state.get("analysis_result"):
         st.divider()
