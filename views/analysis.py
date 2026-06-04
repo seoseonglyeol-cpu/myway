@@ -1,0 +1,30 @@
+import streamlit as st
+from utils.claude_api import analyze_spec
+
+def show():
+    st.title("스펙 분석")
+    st.caption("목표 직무 대비 내 스펙을 AI가 분석해드려요")
+    st.divider()
+
+    if not st.session_state.get("user_profile"):
+        st.warning("먼저 스펙 입력을 완료해주세요")
+        return
+
+    profile = st.session_state.user_profile
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("이름", profile["name"])
+    with col2:
+        st.metric("학교", profile["university"])
+    with col3:
+        st.metric("목표 직무", profile["target_job"])
+
+    st.divider()
+    if st.button("AI 스펙 분석 시작", type="primary", use_container_width=True):
+        with st.spinner("AI가 분석 중입니다..."):
+            result = analyze_spec(profile)
+            st.session_state.analysis_result = result
+
+    if st.session_state.get("analysis_result"):
+        st.divider()
+        st.markdown(st.session_state.analysis_result)
