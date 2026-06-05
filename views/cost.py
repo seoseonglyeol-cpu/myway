@@ -57,6 +57,15 @@ def show():
     st.caption("자격증 준비에 드는 총 비용을 자동으로 계산해드려요")
     st.divider()
 
+    if st.session_state.get("schedule_result"):
+        with st.expander("AI 추천 교재 · 강의 보기", expanded=False):
+            result = st.session_state.schedule_result
+            st.markdown(result)
+        st.divider()
+    else:
+        st.info("공부 스케줄을 먼저 생성하면 AI 추천 교재 · 강의가 여기에 표시됩니다")
+        st.divider()
+
     category = st.selectbox("카테고리", ["전체"] + list(CATEGORIES.keys()))
 
     if category == "전체":

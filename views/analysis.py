@@ -25,8 +25,21 @@ def show():
         with st.spinner("AI가 분석 중입니다..."):
             result = analyze_spec(profile)
             st.session_state.analysis_result = result
-            save_session()
+            if st.session_state.get("current_user"):
+                save_session(st.session_state.current_user)
 
     if st.session_state.get("analysis_result"):
         st.divider()
-        st.markdown(st.session_state.analysis_result)
+        result = st.session_state.analysis_result
+        st.markdown(f"""
+        <div style="background:#FFFFFF; border-radius:16px; padding:32px;
+             border:1px solid #E5E7EB; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:24px;">
+                <div style="width:8px; height:8px; border-radius:50%; background:#02C39A;"></div>
+                <span style="color:#02C39A; font-size:13px; font-weight:700; letter-spacing:1px;">AI 분석 완료</span>
+            </div>
+            <div style="color:#111827; font-size:15px; line-height:1.8;">
+                {result}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)

@@ -1,4 +1,4 @@
 streamlit
-anthropic
+groq
 requests
 beautifulsoup4

@@ -16,7 +16,32 @@ def show():
 
     col1, col2 = st.columns(2)
     with col1:
-        target = st.text_input("목표", placeholder="예: 정보처리기사 필기, 토익")
+        profile = st.session_state.user_profile
+        job = profile.get("target_job", "")
+        certs = profile.get("certificates", "")
+
+        recommendations = {
+            "개발": ["정보처리기사 필기", "정보처리기사 실기", "SQLD", "토익", "코딩테스트 준비", "AWS 자격증", "직접 입력"],
+            "설계": ["CAD 자격증", "기계설계산업기사", "3D프린팅 자격증", "AutoCAD", "SolidWorks", "토익", "직접 입력"],
+            "생산": ["품질경영기사", "생산자동화기사", "ERP 정보관리사", "6시그마", "토익", "안전기사", "직접 입력"],
+            "마케팅": ["구글 애널리틱스(GAIQ)", "ADsP", "사회조사분석사 2급", "토익스피킹", "컴활 1급", "직접 입력"],
+            "회계": ["전산세무 2급", "전산회계 1급", "CPA 1차", "ERP 정보관리사", "토익", "직접 입력"],
+            "데이터": ["ADsP", "빅데이터분석기사", "SQLD", "토익", "파이썬 자격증", "직접 입력"],
+        }
+
+        matched = ["토익", "직접 입력"]
+        for key, vals in recommendations.items():
+            if key in job:
+                matched = vals
+                break
+
+        selected = st.selectbox("목표 (AI 추천)", matched)
+
+        if selected == "직접 입력":
+            target = st.text_input("직접 입력", placeholder="예: 정보처리기사 필기")
+        else:
+            target = selected
+
     with col2:
         deadline = st.date_input("마감일", min_value=date.today())
 
@@ -36,8 +61,21 @@ def show():
             result = generate_schedule(profile, target, str(deadline))
             st.session_state.schedule_result = result
             st.session_state.schedule_dday = (deadline - date.today()).days
-            save_session()
+            if st.session_state.get("current_user"):
+                save_session(st.session_state.current_user)
 
     if st.session_state.get("schedule_result"):
         st.divider()
-        st.markdown(st.session_state.schedule_result)
+        result = st.session_state.schedule_result
+        st.markdown(f"""
+        <div style="background:#FFFFFF; border-radius:16px; padding:32px;
+             border:1px solid #E5E7EB; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:24px;">
+                <div style="width:8px; height:8px; border-radius:50%; background:#02C39A;"></div>
+                <span style="color:#02C39A; font-size:13px; font-weight:700; letter-spacing:1px;">AI 분석 완료</span>
+            </div>
+            <div style="color:#111827; font-size:15px; line-height:1.8;">
+                {result}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)

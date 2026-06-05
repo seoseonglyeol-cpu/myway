@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.session import save_session
 
 def show():
     st.title("스펙 입력")
@@ -62,5 +63,7 @@ def show():
                     "weekday_hours": weekday_hours,
                     "weekend_hours": weekend_hours,
                 }
+                if st.session_state.get("current_user"):
+                    save_session(st.session_state.current_user)
                 st.success(f"{name}님의 스펙이 저장됐어요!")
                 st.balloons()
