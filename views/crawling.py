@@ -29,19 +29,19 @@ def show():
 
         for job in st.session_state.jobs:
             st.markdown(f"""
-            <div style="background:#FFFFFF; border-radius:14px; padding:24px;
-                 border:1px solid #E5E7EB; margin-bottom:12px;
+            <div style="background:rgba(15,27,46,0.6); border-radius:14px; padding:24px;
+                 border:1px solid rgba(59,130,246,0.2); margin-bottom:12px;
                  display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <p style="color:#111827; font-size:17px; font-weight:700;
+                    <p style="color:#F1F5F9; font-size:17px; font-weight:700;
                        margin:0 0 6px 0;">{job['title']}</p>
-                    <p style="color:#6B7280; font-size:13px; margin:0 0 8px 0;">
+                    <p style="color:#94A3B8; font-size:13px; margin:0 0 8px 0;">
                        {job['company']}  |  마감: {job['deadline']}</p>
                     <div style="display:flex; gap:8px;">
-                        {"".join(f'<span style="background:#F0FDF9; color:#02C39A; font-size:12px; font-weight:600; padding:4px 10px; border-radius:20px; border:1px solid #A7F3D0;">{tag}</span>' for tag in job.get('tags', []))}
+                        {"".join(f'<span style="background:rgba(59,130,246,0.15); color:#93c5fd; font-size:12px; font-weight:600; padding:4px 10px; border-radius:20px; border:1px solid rgba(59,130,246,0.35);">{tag}</span>' for tag in job.get('tags', []))}
                     </div>
                 </div>
-                <a href="{job['url']}" target="_blank" style="background:#1C1C1E;
+                <a href="{job['url']}" target="_blank" style="background:linear-gradient(135deg,#2563eb,#3b82f6);
                    color:#FFFFFF; text-decoration:none; padding:10px 20px;
                    border-radius:10px; font-size:13px; font-weight:600;
                    white-space:nowrap;">공고 보기</a>

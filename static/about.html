@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;900&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { overflow: hidden; }
+  body { font-family: 'Noto Sans KR', 'Poppins', sans-serif; background: #030712; color: white; }
+
+  .about-section {
+    position: relative;
+    min-height: 600px; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 30px 4%; overflow: hidden;
+    border-radius: 24px;
+    background:
+      radial-gradient(ellipse at 30% 50%, rgba(30, 64, 175, 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 30%, rgba(59, 130, 246, 0.06) 0%, transparent 40%),
+      linear-gradient(180deg, #030712 0%, #0a1628 50%, #030712 100%);
+  }
+  .about-grid {
+    position: absolute; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+  }
+  .about-content {
+    position: relative; z-index: 2;
+    display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 50px;
+    max-width: 1150px; width: 100%; align-items: center;
+  }
+
+  /* ===== AVATAR ===== */
+  .visual-side { display: flex; justify-content: center; align-items: center; position: relative; }
+  .avatar-scene { position: relative; width: 360px; height: 420px; display: flex; align-items: center; justify-content: center; }
+  .avatar-container { position: relative; width: 260px; height: 360px; display: flex; align-items: center; justify-content: center; }
+  .avatar-silhouette { position: relative; z-index: 3; width: 100%; height: 100%; }
+  .silhouette-body { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 180px; height: 340px; }
+
+  .sil-head {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 76px; height: 76px; border-radius: 50%;
+    background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 50%, #3b82f6 100%);
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.3), inset 0 -4px 15px rgba(0,0,0,0.3);
+    animation: headGlow 4s ease-in-out infinite;
+  }
+  @keyframes headGlow {
+    0%, 100% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.3); }
+    50% { box-shadow: 0 0 60px rgba(59, 130, 246, 0.5); }
+  }
+  .sil-face { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -45%); width: 48px; height: 28px; }
+  .sil-eye { position: absolute; top: 0; width: 8px; height: 8px; border-radius: 50%; background: #93c5fd; box-shadow: 0 0 10px rgba(147, 197, 253, 0.8); animation: eyeBlink 4s ease-in-out infinite; }
+  .sil-eye.left { left: 7px; }
+  .sil-eye.right { right: 7px; }
+  @keyframes eyeBlink {
+    0%, 42%, 44%, 100% { transform: scaleY(1); }
+    43% { transform: scaleY(0.1); }
+  }
+  .sil-mouth { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 14px; height: 7px; border-radius: 0 0 10px 10px; background: rgba(147, 197, 253, 0.5); }
+  .sil-torso {
+    position: absolute; top: 82px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 155px;
+    background: linear-gradient(180deg, #1e3a5f 0%, #0f172a 100%);
+    border-radius: 20px 20px 5px 5px; overflow: hidden;
+  }
+  .sil-torso::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 80%; background: linear-gradient(180deg, rgba(59, 130, 246, 0.3), transparent); }
+  .sil-arm { position: absolute; top: 92px; width: 34px; height: 125px; background: linear-gradient(180deg, #1a2744, #0c1e3a); border-radius: 15px; }
+  .sil-arm.left { left: 6px; transform: rotate(8deg); transform-origin: top center; animation: armSwingL 5s ease-in-out infinite; }
+  .sil-arm.right { right: 6px; transform-origin: top center; animation: armPoint 5s ease-in-out infinite; }
+  @keyframes armSwingL { 0%, 100% { transform: rotate(8deg); } 50% { transform: rotate(3deg); } }
+  @keyframes armPoint { 0%, 100% { transform: rotate(-8deg); } 30%, 70% { transform: rotate(-26deg); } }
+  .sil-hand { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, #1e40af, #3b82f6); }
+  .sil-legs { position: absolute; top: 230px; left: 50%; transform: translateX(-50%); width: 100px; height: 115px; display: flex; gap: 10px; justify-content: center; }
+  .sil-leg { width: 38px; height: 115px; background: linear-gradient(180deg, #0c1e3a, #060d1a); border-radius: 10px 10px 8px 8px; }
+  .avatar-platform { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 200px; height: 30px; background: radial-gradient(ellipse, rgba(59,130,246,0.2) 0%, transparent 70%); border-radius: 50%; z-index: 2; }
+
+  .orbit-container { position: absolute; inset: -20px; z-index: 1; animation: orbitSpin 25s linear infinite; }
+  @keyframes orbitSpin { to { transform: rotate(360deg); } }
+  .orbit-ring { position: absolute; inset: 0; border: 1px solid rgba(59, 130, 246, 0.08); border-radius: 50%; }
+  .orbit-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+  .orbit-dot:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); }
+  .orbit-dot:nth-child(2) { bottom: 0; left: 50%; transform: translateX(-50%); background: #93c5fd; box-shadow: 0 0 15px rgba(147,197,253,0.6); }
+  .orbit-dot:nth-child(3) { top: 50%; right: 0; transform: translateY(-50%); background: #60a5fa; }
+  .orbit-dot:nth-child(4) { top: 50%; left: 0; transform: translateY(-50%); background: #1d4ed8; box-shadow: 0 0 15px rgba(29,78,216,0.6); }
+
+  .floating-icon {
+    position: absolute; width: 50px; height: 50px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem; z-index: 5;
+    border: 1px solid rgba(59,130,246,0.15); backdrop-filter: blur(10px);
+    animation: iconFloat 4s ease-in-out infinite;
+  }
+  .floating-icon.fi-1 { top: 20px; left: 6px; background: rgba(30, 64, 175, 0.15); animation-delay: 0s; }
+  .floating-icon.fi-2 { top: 6px; right: 16px; background: rgba(37, 99, 235, 0.15); animation-delay: 0.8s; }
+  .floating-icon.fi-3 { bottom: 56px; left: -6px; background: rgba(59, 130, 246, 0.15); animation-delay: 1.6s; }
+  .floating-icon.fi-4 { bottom: 76px; right: 6px; background: rgba(29, 78, 216, 0.15); animation-delay: 2.4s; }
+  .floating-icon.fi-5 { top: 50%; left: -28px; background: rgba(96, 165, 250, 0.15); animation-delay: 3.2s; }
+  @keyframes iconFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+  .connector-lines { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+  .connector-lines svg { width: 100%; height: 100%; }
+  .conn-line { stroke: rgba(59, 130, 246, 0.12); stroke-width: 1; fill: none; stroke-dasharray: 4 4; animation: connDash 3s linear infinite; }
+  @keyframes connDash { to { stroke-dashoffset: -24; } }
+
+  /* ===== TEXTO ===== */
+  .text-side { display: flex; flex-direction: column; gap: 20px; }
+  .section-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 50px; width: fit-content; }
+  .badge-dot { width: 6px; height: 6px; background: #3b82f6; border-radius: 50%; animation: badgePulse 2s ease-in-out infinite; }
+  @keyframes badgePulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; box-shadow: 0 0 8px rgba(59,130,246,0.5); } }
+  .badge-text { font-size: 0.7rem; color: #93c5fd; letter-spacing: 3px; text-transform: uppercase; font-weight: 600; }
+  .section-title { font-size: clamp(1.7rem, 3vw, 2.5rem); font-weight: 800; line-height: 1.25; color: white; }
+  .section-title .accent { background: linear-gradient(135deg, #93c5fd, #3b82f6, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .section-desc { font-size: 0.92rem; color: rgba(255,255,255,0.5); line-height: 1.8; font-weight: 300; max-width: 500px; }
+
+  .features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
+  .feature-card { padding: 18px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.08); border-radius: 16px; cursor: pointer; transition: all 0.4s ease; position: relative; overflow: hidden; }
+  .feature-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(59,130,246,0.05), transparent); opacity: 0; transition: opacity 0.4s ease; }
+  .feature-card:hover { border-color: rgba(59, 130, 246, 0.3); transform: translateY(-4px); box-shadow: 0 10px 40px rgba(59, 130, 246, 0.1); }
+  .feature-card:hover::before { opacity: 1; }
+  .fc-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(30,64,175,0.1)); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 10px; border: 1px solid rgba(59,130,246,0.1); transition: transform 0.3s ease; }
+  .fc-title { font-size: 0.92rem; font-weight: 700; color: white; margin-bottom: 5px; }
+  .fc-desc { font-size: 0.76rem; color: rgba(255,255,255,0.4); line-height: 1.6; font-weight: 300; }
+
+  .stats-bar { display: flex; gap: 28px; padding: 18px 0 4px 0; border-top: 1px solid rgba(59, 130, 246, 0.08); margin-top: 6px; }
+  .stat-item { display: flex; flex-direction: column; gap: 4px; }
+  .stat-number { font-size: 1.4rem; font-weight: 700; color: #93c5fd; }
+  .stat-label { font-size: 0.65rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1.5px; }
+  .stat-divider { width: 1px; background: linear-gradient(180deg, transparent, rgba(59,130,246,0.2), transparent); align-self: stretch; }
+
+  .about-cta { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+  .cta-primary { padding: 13px 30px; background: linear-gradient(135deg, #1e40af, #3b82f6); border: none; border-radius: 12px; color: white; font-family: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; }
+  .cta-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(59, 130, 246, 0.3); }
+  .cta-secondary { padding: 13px 26px; background: transparent; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; color: rgba(255,255,255,0.6); font-family: inherit; font-size: 0.84rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
+  .cta-secondary:hover { border-color: rgba(59, 130, 246, 0.6); color: white; background: rgba(59, 130, 246, 0.05); }
+  .play-icon { width: 20px; height: 20px; border-radius: 50%; background: rgba(59, 130, 246, 0.2); display: flex; align-items: center; justify-content: center; }
+  .play-icon svg { width: 8px; height: 8px; fill: #93c5fd; margin-left: 1px; }
+
+  .parallax-particle { position: absolute; border-radius: 50%; background: rgba(59, 130, 246, 0.15); pointer-events: none; z-index: 1; animation: particleDrift linear infinite; }
+  @keyframes particleDrift {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.4; } 90% { opacity: 0.4; }
+    100% { transform: translateY(-600px) rotate(360deg); opacity: 0; }
+  }
+
+  @media (max-width: 900px) {
+    .about-content { grid-template-columns: 1fr; gap: 36px; }
+    .visual-side { order: -1; }
+    .features-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<section class="about-section">
+  <div class="about-grid"></div>
+  <div id="bgParticles"></div>
+
+  <div class="about-content">
+    <!-- AVATAR -->
+    <div class="visual-side">
+      <div class="avatar-scene">
+        <div class="orbit-container">
+          <div class="orbit-ring"></div>
+          <div class="orbit-dot"></div><div class="orbit-dot"></div>
+          <div class="orbit-dot"></div><div class="orbit-dot"></div>
+        </div>
+        <div class="connector-lines">
+          <svg viewBox="0 0 360 420">
+            <line class="conn-line" x1="180" y1="170" x2="40" y2="45" />
+            <line class="conn-line" x1="180" y1="170" x2="320" y2="35" />
+            <line class="conn-line" x1="180" y1="170" x2="25" y2="340" />
+            <line class="conn-line" x1="180" y1="170" x2="335" y2="320" />
+            <line class="conn-line" x1="180" y1="170" x2="8" y2="210" />
+          </svg>
+        </div>
+        <div class="avatar-container">
+          <div class="avatar-silhouette">
+            <div class="silhouette-body">
+              <div class="sil-head">
+                <div class="sil-face">
+                  <div class="sil-eye left"></div>
+                  <div class="sil-eye right"></div>
+                  <div class="sil-mouth"></div>
+                </div>
+              </div>
+              <div class="sil-arm left"><div class="sil-hand"></div></div>
+              <div class="sil-arm right"><div class="sil-hand"></div></div>
+              <div class="sil-torso"></div>
+              <div class="sil-legs"><div class="sil-leg"></div><div class="sil-leg"></div></div>
+            </div>
+          </div>
+          <div class="avatar-platform"></div>
+        </div>
+        <div class="floating-icon fi-1">🎯</div>
+        <div class="floating-icon fi-2">💡</div>
+        <div class="floating-icon fi-3">📊</div>
+        <div class="floating-icon fi-4">🧭</div>
+        <div class="floating-icon fi-5">⚡</div>
+      </div>
+    </div>
+
+    <!-- TEXTO -->
+    <div class="text-side">
+      <div class="section-badge">
+        <div class="badge-dot"></div>
+        <span class="badge-text">마이웨이</span>
+      </div>
+      <h2 class="section-title">
+        균형 잡힌 취준,<br>
+        {{NAME}}님이 <span class="accent">잘 해내고 있어요</span>
+      </h2>
+      <p class="section-desc">
+        마이웨이는 대학생 취준의 모든 것을 AI가 알아서 챙겨주는 똑똑한 동반자예요.
+        스펙 분석부터 맞춤 로드맵, 공부 스케줄, 채용공고까지 — 흩어진 정보를 모아 당신만의 길을 제시합니다.
+      </p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="fc-icon">🧠</div>
+          <div class="fc-title">AI 스펙 분석</div>
+          <div class="fc-desc">목표 직무 대비 내 준비도를 데이터로 분석해드려요.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🗺️</div>
+          <div class="fc-title">맞춤 로드맵</div>
+          <div class="fc-desc">단계별 취준 로드맵을 자동으로 설계해드려요.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">📅</div>
+          <div class="fc-title">공부 스케줄</div>
+          <div class="fc-desc">나에게 맞는 학습 일정을 추천해드려요.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🔍</div>
+          <div class="fc-title">채용공고 탐색</div>
+          <div class="fc-desc">내 스펙에 맞는 공고를 찾아드려요.</div>
+        </div>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat-item"><span class="stat-number">5,000+</span><span class="stat-label">대학생</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat-item"><span class="stat-number">∞</span><span class="stat-label">진로</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat-item"><span class="stat-number">4.9★</span><span class="stat-label">평점</span></div>
+      </div>
+
+      <div class="about-cta">
+        <button class="cta-primary">스펙 입력 시작</button>
+        <button class="cta-secondary">
+          <div class="play-icon"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          사용법 보기
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const bgParticles = document.getElementById('bgParticles');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.classList.add('parallax-particle');
+    const size = Math.random() * 4 + 2;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = (Math.random() * 100 + 100) + '%';
+    p.style.animationDuration = (Math.random() * 5 + 10) + 's';
+    p.style.animationDelay = (Math.random() * 10) + 's';
+    bgParticles.appendChild(p);
+  }
+
+  document.querySelectorAll('.feature-card').forEach(card => {
+    const icon = card.querySelector('.fc-icon');
+    card.addEventListener('mouseenter', () => { icon.style.transform = 'scale(1.12) rotate(-6deg)'; });
+    card.addEventListener('mouseleave', () => { icon.style.transform = 'scale(1) rotate(0deg)'; });
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 10;
+    const y = (e.clientY / window.innerHeight - 0.5) * 10;
+    const scene = document.querySelector('.avatar-scene');
+    if (scene) {
+      scene.style.transform = `perspective(800px) rotateY(${x}deg) rotateX(${-y}deg)`;
+      scene.style.transition = 'transform 0.3s ease-out';
+    }
+  });
+</script>
+</body>
+</html>

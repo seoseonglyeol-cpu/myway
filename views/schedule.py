@@ -1,7 +1,16 @@
 import streamlit as st
 from datetime import date
 from utils.claude_api import generate_schedule
+from utils.certs import next_exam_date
 from utils.session import save_session
+
+
+def _sync_deadline():
+    """목표 선택이 바뀌면 다음 시험일로 마감일 자동 설정."""
+    nd = next_exam_date(st.session_state.get("sched_goal", ""))
+    if nd:
+        st.session_state["sched_deadline"] = nd
+
 
 def show():
     st.title("공부 스케줄")
@@ -35,7 +44,11 @@ def show():
                 matched = vals
                 break
 
-        selected = st.selectbox("목표 (AI 추천)", matched)
+        # 마감일 초기값: 첫 목표의 다음 시험일 (없으면 오늘)
+        if "sched_deadline" not in st.session_state:
+            st.session_state["sched_deadline"] = next_exam_date(matched[0]) or date.today()
+
+        selected = st.selectbox("목표 (AI 추천)", matched, key="sched_goal", on_change=_sync_deadline)
 
         if selected == "직접 입력":
             target = st.text_input("직접 입력", placeholder="예: 정보처리기사 필기")
@@ -43,7 +56,12 @@ def show():
             target = selected
 
     with col2:
-        deadline = st.date_input("마감일", min_value=date.today())
+        deadline = st.date_input("마감일", min_value=date.today(), key="sched_deadline")
+        _nd = next_exam_date(selected) if selected != "직접 입력" else None
+        if _nd:
+            st.caption(f"🗓️ {selected} 다음 시험일({_nd})로 자동 설정했어요. 직접 바꿔도 돼요.")
+        elif selected not in ("직접 입력",):
+            st.caption("이 목표는 등록된 시험일이 없어요. 마감일을 직접 정해주세요.")
 
     if target:
         days_left = (deadline - date.today()).days
@@ -68,13 +86,13 @@ def show():
         st.divider()
         result = st.session_state.schedule_result
         st.markdown(f"""
-        <div style="background:#FFFFFF; border-radius:16px; padding:32px;
-             border:1px solid #E5E7EB; margin-bottom:16px;">
+        <div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:32px;
+             border:1px solid rgba(59,130,246,0.2); margin-bottom:16px;">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:24px;">
-                <div style="width:8px; height:8px; border-radius:50%; background:#02C39A;"></div>
-                <span style="color:#02C39A; font-size:13px; font-weight:700; letter-spacing:1px;">AI 분석 완료</span>
+                <div style="width:8px; height:8px; border-radius:50%; background:#3b82f6;"></div>
+                <span style="color:#60a5fa; font-size:13px; font-weight:700; letter-spacing:1px;">AI 분석 완료</span>
             </div>
-            <div style="color:#111827; font-size:15px; line-height:1.8;">
+            <div style="color:#CBD5E1; font-size:15px; line-height:1.8;">
                 {result}
             </div>
         </div>
