@@ -68,16 +68,11 @@ def show():
         _render_curated(data)
         st.divider()
         st.markdown('<p style="color:#94A3B8; font-size:13px;">내 스펙에 맞춘 추가 팁이 필요하면 AI에게 물어보세요</p>', unsafe_allow_html=True)
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("AI 맞춤 추가 추천", use_container_width=True, disabled=not subject):
-                with st.spinner("AI가 추가 리소스를 찾고 있어요..."):
-                    st.session_state.resources_result = recommend_resources(profile, subject)
-                    if st.session_state.get("current_user"):
-                        save_session(st.session_state.current_user)
-        with c2:
-            if st.button("비용 계산기로 가기", use_container_width=True, key="res_to_cost"):
-                go_to("비용 계산기")
+        if st.button("AI 맞춤 추가 추천", use_container_width=True, disabled=not subject):
+            with st.spinner("AI가 추가 리소스를 찾고 있어요..."):
+                st.session_state.resources_result = recommend_resources(profile, subject)
+                if st.session_state.get("current_user"):
+                    save_session(st.session_state.current_user)
     else:
         # ===== 등록 안 된 자격증 → AI =====
         if subject:

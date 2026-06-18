@@ -363,7 +363,7 @@ with st.sidebar:
     apply_pending_nav()
     page = st.radio("메뉴", [
         "홈", "내 할 일", "스펙 입력", "스펙 분석", "선배 매칭", "학기 플래너", "로드맵",
-        "공부 스케줄", "교재·강의 추천", "비용 계산기", "채용공고 탐색"
+        "공부 스케줄", "교재·강의 추천", "채용공고 탐색"
     ], label_visibility="collapsed", key="nav_page")
     st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
     if st.button("로그아웃", use_container_width=True):
@@ -452,9 +452,6 @@ elif page == "공부 스케줄":
     show()
 elif page == "교재·강의 추천":
     from views.resources import show
-    show()
-elif page == "비용 계산기":
-    from views.cost import show
     show()
 elif page == "채용공고 탐색":
     from views.crawling import show
