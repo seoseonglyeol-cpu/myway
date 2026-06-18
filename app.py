@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="마이웨이",
     page_icon="🎯",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"
 )
 
 st.markdown("""
@@ -223,14 +223,24 @@ hr { border-color: rgba(59,130,246,0.15) !important; }
 
 /* ===== 모바일 반응형 (<=768px) ===== */
 @media (max-width: 768px) {
-    /* 사이드바: 강제 고정 해제 → 햄버거로 접고 펴기 복원 */
+    /* 사이드바: 햄버거 복원 + 콘텐츠 위로 덮는 불투명 오버레이 */
     [data-testid="collapsedControl"],
     [data-testid="stSidebarCollapseButton"] { display: block !important; }
-    section[data-testid="stSidebar"] { min-width: 75vw !important; width: 75vw !important; }
-    section[data-testid="stSidebar"] > div:first-child { width: 75vw !important; }
+    section[data-testid="stSidebar"] {
+        position: fixed !important; top: 0 !important; left: 0 !important;
+        height: 100vh !important; width: 80vw !important; min-width: 80vw !important;
+        z-index: 999999 !important;
+        background: #0a1628 !important;
+        box-shadow: 6px 0 40px rgba(0,0,0,0.7) !important;
+        transition: transform 0.25s ease !important;
+    }
+    section[data-testid="stSidebar"] > div:first-child { width: 80vw !important; }
     section[data-testid="stSidebar"][aria-expanded="false"] {
         transform: translateX(-100%) !important;
-        min-width: 0 !important; width: 0 !important;
+    }
+    /* 메인은 항상 전체 너비 (사이드바가 위로 덮음) */
+    section[data-testid="stMain"], [data-testid="stAppViewContainer"] > .main {
+        margin-left: 0 !important; width: 100% !important;
     }
     /* 컬럼을 세로로 쌓기 (폼·메트릭·카드) */
     [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 8px !important; }
