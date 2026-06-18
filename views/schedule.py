@@ -1,16 +1,19 @@
 import streamlit as st
-from datetime import date
+from datetime import date, timedelta
 from utils.claude_api import generate_schedule, koreanize
-from utils.certs import next_exam_date
+from utils.certs import next_exam_date, cert_options
 from utils.session import save_session
 from utils.nav import go_to
 
 
+def _default_deadline(goal):
+    """목표의 다음 시험일, 없으면 약 한 달 뒤로."""
+    return next_exam_date(goal) or (date.today() + timedelta(days=30))
+
+
 def _sync_deadline():
-    """목표 선택이 바뀌면 다음 시험일로 마감일 자동 설정."""
-    nd = next_exam_date(st.session_state.get("sched_goal", ""))
-    if nd:
-        st.session_state["sched_deadline"] = nd
+    """목표 선택이 바뀌면 마감일 자동 설정 (시험일 없으면 +30일)."""
+    st.session_state["sched_deadline"] = _default_deadline(st.session_state.get("sched_goal", ""))
 
 
 def show():
@@ -28,30 +31,14 @@ def show():
 
     col1, col2 = st.columns(2)
     with col1:
-        profile = st.session_state.user_profile
-        job = profile.get("target_job", "")
-        certs = profile.get("certificates", "")
+        # 전공 기반 목표(자격증) 추천 목록
+        matched = cert_options(profile.get("major", ""))
 
-        recommendations = {
-            "개발": ["정보처리기사 필기", "정보처리기사 실기", "SQLD", "토익", "코딩테스트 준비", "AWS 자격증", "직접 입력"],
-            "설계": ["CAD 자격증", "기계설계산업기사", "3D프린팅 자격증", "AutoCAD", "SolidWorks", "토익", "직접 입력"],
-            "생산": ["품질경영기사", "생산자동화기사", "ERP 정보관리사", "6시그마", "토익", "안전기사", "직접 입력"],
-            "마케팅": ["구글 애널리틱스(GAIQ)", "ADsP", "사회조사분석사 2급", "토익스피킹", "컴활 1급", "직접 입력"],
-            "회계": ["전산세무 2급", "전산회계 1급", "CPA 1차", "ERP 정보관리사", "토익", "직접 입력"],
-            "데이터": ["ADsP", "빅데이터분석기사", "SQLD", "토익", "파이썬 자격증", "직접 입력"],
-        }
-
-        matched = ["토익", "직접 입력"]
-        for key, vals in recommendations.items():
-            if key in job:
-                matched = vals
-                break
-
-        # 마감일 초기값: 첫 목표의 다음 시험일 (없으면 오늘)
+        # 마감일 초기값: 첫 목표의 다음 시험일 (없으면 +30일)
         if "sched_deadline" not in st.session_state:
-            st.session_state["sched_deadline"] = next_exam_date(matched[0]) or date.today()
+            st.session_state["sched_deadline"] = _default_deadline(matched[0])
 
-        selected = st.selectbox("목표 (AI 추천)", matched, key="sched_goal", on_change=_sync_deadline)
+        selected = st.selectbox("목표 (전공 맞춤)", matched, key="sched_goal", on_change=_sync_deadline)
 
         if selected == "직접 입력":
             target = st.text_input("직접 입력", placeholder="예: 정보처리기사 필기")
@@ -63,8 +50,8 @@ def show():
         _nd = next_exam_date(selected) if selected != "직접 입력" else None
         if _nd:
             st.caption(f"🗓️ {selected} 다음 시험일({_nd})로 자동 설정했어요. 직접 바꿔도 돼요.")
-        elif selected not in ("직접 입력",):
-            st.caption("이 목표는 등록된 시험일이 없어요. 마감일을 직접 정해주세요.")
+        elif selected != "직접 입력":
+            st.caption("정확한 시험일이 없어 약 한 달 뒤로 자동 설정했어요. 직접 바꿔도 돼요.")
 
     if target:
         days_left = (deadline - date.today()).days
