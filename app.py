@@ -471,3 +471,31 @@ elif page == "교재·강의 추천":
 elif page == "채용공고 탐색":
     from views.crawling import show
     show()
+
+# 모바일 UX: 상호작용(메뉴 선택/버튼 클릭)마다 메뉴 닫고 맨 위로 스크롤
+components.html(
+    """
+    <script>
+    (function () {
+      const p = window.parent;
+      if (!p || p.innerWidth > 768) return;
+      const doc = p.document;
+      setTimeout(function () {
+        // 1) 메인 영역 맨 위로
+        const main = doc.querySelector('section.main, [data-testid="stMain"], [data-testid="stAppViewContainer"]');
+        if (main && main.scrollTo) main.scrollTo({ top: 0 });
+        if (p.scrollTo) p.scrollTo({ top: 0 });
+        // 2) 사이드바가 열려 있으면 닫기
+        const sb = doc.querySelector('section[data-testid="stSidebar"]');
+        if (sb && sb.getAttribute('aria-expanded') === 'true') {
+          const btn = doc.querySelector('[data-testid="stSidebarCollapseButton"] button')
+                   || doc.querySelector('[data-testid="stSidebarCollapseButton"]')
+                   || sb.querySelector('button');
+          if (btn) btn.click();
+        }
+      }, 60);
+    })();
+    </script>
+    """,
+    height=0,
+)
