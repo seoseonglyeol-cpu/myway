@@ -227,7 +227,21 @@ hr { border-color: rgba(59,130,246,0.15) !important; }
 
 /* ===== 모바일 반응형 (<=768px) ===== */
 @media (max-width: 768px) {
-    /* 사이드바: Streamlit 기본 동작(햄버거/오버레이) 사용 + 불투명·최상단 보장 */
+    /* 모바일: 헤더 표시(메뉴 버튼이 여기 있음) + 메뉴 토글 버튼 강제 노출 */
+    header[data-testid="stHeader"] {
+        display: block !important; height: 3rem !important;
+        background: rgba(3,7,18,0.85) !important;
+    }
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="baseButton-headerNoPadding"],
+    button[kind="headerNoPadding"] {
+        display: flex !important; visibility: visible !important; opacity: 1 !important;
+        z-index: 1000000 !important;
+    }
+    /* 사이드바: 불투명·최상단 보장 */
     section[data-testid="stSidebar"] {
         z-index: 999999 !important;
         background: #0a1628 !important;
