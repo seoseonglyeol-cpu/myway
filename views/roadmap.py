@@ -1,133 +1,89 @@
+import re
 import streamlit as st
-from utils.claude_api import generate_roadmap
+from utils.claude_api import generate_roadmap, koreanize
+from utils.seniors import match_seniors, get_senior
 from utils.session import save_session
+from utils.nav import go_to
+
+# 단계 헤더에 매칭할 색상/포인트
+STAGE_ACCENTS = ["#3b82f6", "#60a5fa", "#f59e0b", "#22c55e", "#93c5fd", "#a78bfa"]
+
+
+def _render_roadmap(text):
+    """AI 마크다운(## 섹션)을 단계별 카드로 렌더. 본문은 st.markdown으로 정상 렌더."""
+    text = koreanize(text)
+    parts = re.split(r"\n(?=##\s)", text.strip())
+    sections = [p.strip() for p in parts if p.strip().startswith("##")]
+    if not sections:
+        st.markdown(text)
+        return
+    for i, sec in enumerate(sections):
+        split = sec.split("\n", 1)
+        header = split[0].lstrip("#").strip()
+        body = split[1].strip() if len(split) > 1 else ""
+        accent = STAGE_ACCENTS[i % len(STAGE_ACCENTS)]
+        st.markdown(
+            f'<div style="display:flex; align-items:center; gap:10px; margin:18px 0 8px;">'
+            f'<div style="width:10px; height:10px; border-radius:50%; background:{accent}; box-shadow:0 0 10px {accent};"></div>'
+            f'<span style="color:#FFFFFF; font-size:16px; font-weight:700;">{header}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        with st.container(border=True):
+            st.markdown(body)
+
 
 def show():
     st.title("맞춤 로드맵")
-    st.caption("AI가 취준 단계별 로드맵을 짜드려요")
+    st.caption("시간 흐름(지금 → 6개월 이후)으로 무엇을 먼저 할지 한눈에 보여줘요")
+    with st.expander("로드맵 vs 학기 플래너, 뭐가 달라요?"):
+        st.markdown(
+            "- **로드맵 (지금 여기)**: *시간 축* 단계별 우선순위 (지금 / 1~3개월 / 3~6개월 / 6개월+)\n"
+            "- **학기 플래너**: *학기 축* (2026 2학기, 2027 1학기…)으로 과목·자격증을 시험 일정에 맞춰 배치"
+        )
+        if st.button("학기 플래너로 가기", key="rm_to_planner"):
+            go_to("학기 플래너")
     st.divider()
 
     if not st.session_state.get("user_profile"):
         st.warning("먼저 스펙 입력을 완료해주세요")
+        if st.button("스펙 입력하러 가기", type="primary"):
+            go_to("스펙 입력")
         return
 
     profile = st.session_state.user_profile
-    st.info(f"{profile['name']}님의 {profile['target_job']} 취준 로드맵")
+    major = profile.get("major") or "내 전공"
+    target_job = profile.get("target_job", "목표 직무")
+
+    seniors = match_seniors(profile)
+
+    # 롤모델 선배 선택 (선배 매칭/플래너에서 고른 선배가 있으면 기본값)
+    picked_id = None
+    if seniors:
+        labels = {f"{s['nickname']} · {s['company']} {s['job']}": s["id"] for s in seniors}
+        default_idx = 0
+        prev_id = st.session_state.get("planner_senior_id") or \
+            (st.session_state.get("mentor_result") or {}).get("senior_id")
+        if prev_id in labels.values():
+            default_idx = list(labels.values()).index(prev_id)
+        picked_label = st.selectbox("롤모델 선배 (선택)", list(labels.keys()), index=default_idx)
+        picked_id = labels[picked_label]
+        st.info(f"**{major}** · 목표 **{target_job}** 기준으로 선배와 비교해 로드맵을 만들어요")
+    else:
+        st.info(f"**{major}** · 목표 **{target_job}** 기준으로 로드맵을 만들어요 (매칭되는 선배 없음)")
 
     if st.button("로드맵 생성", type="primary", use_container_width=True):
-        with st.spinner("AI가 로드맵을 만들고 있습니다..."):
-            result = generate_roadmap(profile)
+        senior = get_senior(picked_id) if picked_id else None
+        with st.spinner("AI가 선배 스펙과 시험 일정을 반영해 로드맵을 만들고 있어요..."):
+            result = generate_roadmap(profile, senior)
             st.session_state.roadmap_result = result
+            st.session_state.roadmap_senior_id = picked_id
             if st.session_state.get("current_user"):
                 save_session(st.session_state.current_user)
 
     if st.session_state.get("roadmap_result"):
         st.divider()
-
-        profile = st.session_state.user_profile
-        job = profile.get("target_job", "")
-
-        st.markdown(f"""
-        <div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:32px;
-             border:1px solid rgba(59,130,246,0.2); margin-bottom:24px; overflow-x:auto;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:24px;">
-                <div style="width:8px; height:8px; border-radius:50%; background:#3b82f6;"></div>
-                <span style="color:#60a5fa; font-size:13px; font-weight:700;">{job} 취준 로드맵</span>
-            </div>
-            <div style="display:grid; grid-template-columns:120px 1fr 1fr 1fr 1fr; gap:2px; margin-bottom:4px;">
-                <div style="background:#0a1628; padding:12px; border-radius:8px 0 0 0;">
-                    <span style="color:#FFFFFF; font-size:12px; font-weight:700;">단계</span>
-                </div>
-                <div style="background:#0a1628; padding:12px; text-align:center;">
-                    <span style="color:#FFFFFF; font-size:12px; font-weight:700;">지금</span>
-                </div>
-                <div style="background:#0a1628; padding:12px; text-align:center;">
-                    <span style="color:#FFFFFF; font-size:12px; font-weight:700;">1~3개월</span>
-                </div>
-                <div style="background:#0a1628; padding:12px; text-align:center;">
-                    <span style="color:#FFFFFF; font-size:12px; font-weight:700;">3~6개월</span>
-                </div>
-                <div style="background:#0a1628; padding:12px; text-align:center; border-radius:0 8px 0 0;">
-                    <span style="color:#FFFFFF; font-size:12px; font-weight:700;">6개월~</span>
-                </div>
-            </div>
-            <div style="display:grid; grid-template-columns:120px 1fr 1fr 1fr 1fr; gap:2px; margin-bottom:2px;">
-                <div style="background:rgba(15,27,46,0.45); padding:12px; display:flex; align-items:center;">
-                    <span style="color:#E2E8F0; font-size:13px; font-weight:600;">자격증</span>
-                </div>
-                <div style="background:rgba(59,130,246,0.1); padding:12px; grid-column: span 2;">
-                    <div style="background:linear-gradient(135deg,#2563eb,#3b82f6); border-radius:6px; padding:6px 12px;">
-                        <span style="color:#FFF; font-size:11px; font-weight:600;">필수 자격증 취득</span>
-                    </div>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;">
-                    <div style="background:rgba(148,163,184,0.2); border-radius:6px; padding:6px 12px;">
-                        <span style="color:#CBD5E1; font-size:11px;">심화 자격증</span>
-                    </div>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;"></div>
-            </div>
-            <div style="display:grid; grid-template-columns:120px 1fr 1fr 1fr 1fr; gap:2px; margin-bottom:2px;">
-                <div style="background:rgba(15,27,46,0.45); padding:12px; display:flex; align-items:center;">
-                    <span style="color:#E2E8F0; font-size:13px; font-weight:600;">스킬</span>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;">
-                    <div style="background:#DBEAFE; border-radius:6px; padding:6px 12px;">
-                        <span style="color:#1D4ED8; font-size:11px; font-weight:600;">기초 학습</span>
-                    </div>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px; grid-column: span 2;">
-                    <div style="background:#1D4ED8; border-radius:6px; padding:6px 12px;">
-                        <span style="color:#FFF; font-size:11px; font-weight:600;">실무 스킬 향상</span>
-                    </div>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;"></div>
-            </div>
-            <div style="display:grid; grid-template-columns:120px 1fr 1fr 1fr 1fr; gap:2px; margin-bottom:2px;">
-                <div style="background:rgba(15,27,46,0.45); padding:12px; display:flex; align-items:center;">
-                    <span style="color:#E2E8F0; font-size:13px; font-weight:600;">경험</span>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;"></div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;">
-                    <div style="background:#FEF3C7; border-radius:6px; padding:6px 12px;">
-                        <span style="color:#92400E; font-size:11px; font-weight:600;">공모전/프로젝트</span>
-                    </div>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px; grid-column: span 2;">
-                    <div style="background:#F59E0B; border-radius:6px; padding:6px 12px;">
-                        <span style="color:#FFF; font-size:11px; font-weight:600;">인턴십 + 포트폴리오</span>
-                    </div>
-                </div>
-            </div>
-            <div style="display:grid; grid-template-columns:120px 1fr 1fr 1fr 1fr; gap:2px;">
-                <div style="background:rgba(15,27,46,0.45); padding:12px; display:flex; align-items:center; border-radius:0 0 0 8px;">
-                    <span style="color:#E2E8F0; font-size:13px; font-weight:600;">취업준비</span>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;"></div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;"></div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px;">
-                    <div style="background:#FEE2E2; border-radius:6px; padding:6px 12px;">
-                        <span style="color:#DC2626; font-size:11px; font-weight:600;">서류 준비</span>
-                    </div>
-                </div>
-                <div style="background:rgba(15,27,46,0.45); padding:12px; border-radius:0 0 8px 0;">
-                    <div style="background:#DC2626; border-radius:6px; padding:6px 12px;">
-                        <span style="color:#FFF; font-size:11px; font-weight:600;">면접 + 입사</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:32px;
-             border:1px solid rgba(59,130,246,0.2);">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:24px;">
-                <div style="width:8px; height:8px; border-radius:50%; background:#3b82f6;"></div>
-                <span style="color:#60a5fa; font-size:13px; font-weight:700;">상세 로드맵</span>
-            </div>
-            <div style="color:#CBD5E1; font-size:15px; line-height:1.8;">
-                {st.session_state.roadmap_result}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        sr = get_senior(st.session_state.get("roadmap_senior_id"))
+        if sr:
+            st.success(f"**{sr['nickname']}** ({sr['company']} · {sr['job']}) 기준 로드맵이에요")
+        _render_roadmap(st.session_state.roadmap_result)

@@ -72,6 +72,28 @@ SENIORS = [
         "courseRecommendation": ["응용자료구조", "알고리즘응용", "데이터베이스개론", "오픈소스SW응용"],
     },
 
+    {
+        "id": 14, "nickname": "지안 선배", "major": "응용정보공학과", "field": "정보보안",
+        "gpa": 3.7, "english": "토익 860",
+        "company": "신한은행", "job": "정보보안 담당(디지털/ICT)",
+        "certificates": ["정보처리기사", "정보보안기사", "리눅스마스터 2급"],
+        "activities": ["금융보안 동아리", "CTF 보안대회 입상", "보안관제 인턴 3개월"],
+        "courses": [
+            {"name": "정보프로그래밍기초", "category": "전공필수", "grade": "A0", "importance": "핵심"},
+            {"name": "응용자료구조", "category": "전공필수", "grade": "A0", "importance": "핵심"},
+            {"name": "컴퓨터네트워크", "category": "전공선택", "grade": "A+", "importance": "핵심"},
+            {"name": "정보보안개론", "category": "전공선택", "grade": "A+", "importance": "핵심"},
+            {"name": "운영체제", "category": "전공선택", "grade": "A0", "importance": "핵심"},
+            {"name": "시스템보안", "category": "전공선택", "grade": "A0", "importance": "권장"},
+            {"name": "암호학", "category": "전공선택", "grade": "A0", "importance": "권장"},
+            {"name": "데이터베이스개론", "category": "전공선택", "grade": "B+", "importance": "일반"},
+        ],
+        "doubleMajor": {"has": False, "field": "", "credits": "", "status": ""},
+        "minor": {"has": False, "field": "", "credits": "", "status": ""},
+        "keyAdvice": "금융권 보안은 정보보안기사 + 실전 감각이 핵심이에요. CTF나 보안관제 인턴으로 실전 경험을 쌓고 네트워크·운영체제 기초를 단단히 하세요. 정보보안기사는 난이도가 높으니 일찍 시작하세요.",
+        "courseRecommendation": ["정보보안개론", "시스템보안", "컴퓨터네트워크", "암호학"],
+    },
+
     # ===== 컴퓨터과학 =====
     {
         "id": 4, "nickname": "서연 선배", "major": "컴퓨터과학과", "field": "IT/개발",
@@ -180,6 +202,28 @@ SENIORS = [
         "courseRecommendation": ["기초회로이론", "전력공학", "전자기학1", "제어공학"],
     },
 
+    {
+        "id": 15, "nickname": "건우 선배", "major": "전기전자공학부", "field": "신재생에너지",
+        "gpa": 3.5, "english": "토익 800",
+        "company": "선그로우(Sungrow)", "job": "신재생에너지 ESS 엔지니어",
+        "certificates": ["전기기사", "전기공사기사"],
+        "activities": ["태양광 발전 산학 프로젝트", "전기 동아리", "신재생에너지 기업 인턴 3개월"],
+        "courses": [
+            {"name": "기초회로이론", "category": "전공필수", "grade": "A0", "importance": "핵심"},
+            {"name": "전력공학", "category": "전공선택", "grade": "A+", "importance": "핵심"},
+            {"name": "전력전자", "category": "전공선택", "grade": "A+", "importance": "핵심"},
+            {"name": "제어공학", "category": "전공선택", "grade": "A0", "importance": "핵심"},
+            {"name": "전자기학1", "category": "전공필수", "grade": "B+", "importance": "핵심"},
+            {"name": "에너지변환공학", "category": "전공선택", "grade": "A0", "importance": "권장"},
+            {"name": "신호및시스템", "category": "전공필수", "grade": "B+", "importance": "권장"},
+            {"name": "디지털논리회로", "category": "전공필수", "grade": "A0", "importance": "일반"},
+        ],
+        "doubleMajor": {"has": False, "field": "", "credits": "", "status": ""},
+        "minor": {"has": False, "field": "", "credits": "", "status": ""},
+        "keyAdvice": "신재생/ESS는 전력공학·전력전자가 핵심이에요. 전기기사+전기공사기사 쌍기사를 갖추고 태양광·ESS 산학 프로젝트로 실무 경험을 보여주세요.",
+        "courseRecommendation": ["전력공학", "전력전자", "제어공학", "에너지변환공학"],
+    },
+
     # ===== 기계공학 =====
     {
         "id": 9, "nickname": "시우 선배", "major": "기계공학부", "field": "대기업",
@@ -201,6 +245,49 @@ SENIORS = [
         "minor": {"has": False, "field": "", "credits": "", "status": ""},
         "keyAdvice": "기구설계는 '4대 역학 + CAD'가 기본이에요. 컴퓨터응용기계설계로 3D 모델링 포트폴리오를 만드세요.",
         "courseRecommendation": ["고체역학", "기계요소설계", "컴퓨터응용기계설계", "동역학"],
+    },
+
+    {
+        "id": 16, "nickname": "재윤 선배", "major": "기계공학부", "field": "발전/공기업",
+        "gpa": 3.6, "english": "토익 820",
+        "company": "한국남부발전", "job": "기계직",
+        "certificates": ["일반기계기사", "공조냉동기계기사", "한국사능력검정 1급"],
+        "activities": ["NCS 스터디 1년", "발전공기업 취업 동아리", "기계설비 현장 실습"],
+        "courses": [
+            {"name": "고체역학", "category": "전공필수", "grade": "A0", "importance": "핵심"},
+            {"name": "열역학", "category": "전공필수", "grade": "A+", "importance": "핵심"},
+            {"name": "유체역학", "category": "전공필수", "grade": "A0", "importance": "핵심"},
+            {"name": "열전달", "category": "전공선택", "grade": "A+", "importance": "핵심"},
+            {"name": "동역학", "category": "전공필수", "grade": "B+", "importance": "핵심"},
+            {"name": "기계요소설계", "category": "전공선택", "grade": "A0", "importance": "권장"},
+            {"name": "유체기계", "category": "전공선택", "grade": "A0", "importance": "권장"},
+            {"name": "발전공학", "category": "전공선택", "grade": "B+", "importance": "일반"},
+        ],
+        "doubleMajor": {"has": False, "field": "", "credits": "", "status": ""},
+        "minor": {"has": False, "field": "", "credits": "", "status": ""},
+        "keyAdvice": "발전·공기업 기계직은 '쌍기사(일반기계+공조냉동)' + NCS가 기본이에요. 4대 역학 학점을 챙기고 열전달·유체기계로 발전설비 이해를 보여주세요.",
+        "courseRecommendation": ["열역학", "열전달", "유체역학", "유체기계"],
+    },
+    {
+        "id": 17, "nickname": "한별 선배", "major": "기계공학부", "field": "시설/데이터센터",
+        "gpa": 3.4, "english": "토익 760",
+        "company": "삼건이엔씨", "job": "데이터센터 냉동공조 엔지니어",
+        "certificates": ["공조냉동기계기사", "에너지관리기사"],
+        "activities": ["건물 기계설비 인턴 4개월", "HVAC 설계 스터디", "캡스톤 공조 설계 프로젝트"],
+        "courses": [
+            {"name": "열역학", "category": "전공필수", "grade": "A0", "importance": "핵심"},
+            {"name": "열전달", "category": "전공선택", "grade": "A+", "importance": "핵심"},
+            {"name": "공조냉동공학", "category": "전공선택", "grade": "A+", "importance": "핵심"},
+            {"name": "유체역학", "category": "전공필수", "grade": "A0", "importance": "핵심"},
+            {"name": "유체기계", "category": "전공선택", "grade": "A0", "importance": "권장"},
+            {"name": "기계요소설계", "category": "전공선택", "grade": "B+", "importance": "권장"},
+            {"name": "자동제어", "category": "전공선택", "grade": "B+", "importance": "권장"},
+            {"name": "에너지시스템공학", "category": "전공선택", "grade": "A0", "importance": "일반"},
+        ],
+        "doubleMajor": {"has": False, "field": "", "credits": "", "status": ""},
+        "minor": {"has": False, "field": "", "credits": "", "status": ""},
+        "keyAdvice": "AI 데이터센터·시설 분야는 공조냉동기계기사+에너지관리기사가 강력해요. 공조냉동공학·열전달을 챙기고 HVAC 설계 프로젝트로 실무를 보여주세요.",
+        "courseRecommendation": ["공조냉동공학", "열전달", "유체기계", "에너지시스템공학"],
     },
 
     # ===== 치위생학과 (단국대) =====

@@ -74,6 +74,16 @@ section[data-testid="stSidebar"] .stRadio > div > label {
     cursor: pointer !important; font-size: 14px !important; font-weight: 500 !important;
 }
 section[data-testid="stSidebar"] .stRadio > div > label:hover { background: rgba(59,130,246,0.12) !important; }
+/* 현재 페이지(선택된 메뉴) 강조 */
+section[data-testid="stSidebar"] .stRadio > div > label:has(input:checked) {
+    background: linear-gradient(135deg, rgba(37,99,235,0.30), rgba(59,130,246,0.14)) !important;
+    box-shadow: inset 3px 0 0 #3b82f6 !important;
+}
+section[data-testid="stSidebar"] .stRadio > div > label:has(input:checked) p,
+section[data-testid="stSidebar"] .stRadio > div > label:has(input:checked) div {
+    color: #93c5fd !important;
+    font-weight: 700 !important;
+}
 section[data-testid="stSidebar"] .stButton > button {
     background: transparent !important; border: 1px solid rgba(148,163,184,0.25) !important;
     color: #94A3B8 !important; font-size: 13px !important; height: 40px !important;
@@ -210,6 +220,31 @@ footer { display: none !important; }
     font-weight: 700 !important;
 }
 hr { border-color: rgba(59,130,246,0.15) !important; }
+
+/* ===== 모바일 반응형 (<=768px) ===== */
+@media (max-width: 768px) {
+    /* 사이드바: 강제 고정 해제 → 햄버거로 접고 펴기 복원 */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"] { display: block !important; }
+    section[data-testid="stSidebar"] { min-width: 75vw !important; width: 75vw !important; }
+    section[data-testid="stSidebar"] > div:first-child { width: 75vw !important; }
+    section[data-testid="stSidebar"][aria-expanded="false"] {
+        transform: translateX(-100%) !important;
+        min-width: 0 !important; width: 0 !important;
+    }
+    /* 컬럼을 세로로 쌓기 (폼·메트릭·카드) */
+    [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 8px !important; }
+    [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+        flex: 1 1 100% !important; min-width: 100% !important; width: 100% !important;
+    }
+    .block-container { padding: 12px 14px !important; }
+    h1 { font-size: 24px !important; }
+    /* 준비도 배너 줄바꿈 */
+    .rd-banner { flex-wrap: wrap !important; gap: 10px 16px !important; padding: 12px 16px !important; }
+    .rd-banner .rd-div { display: none !important; }
+    /* 메트릭 카드 패딩 축소 */
+    [data-testid="stMetric"] { padding: 14px !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -241,7 +276,7 @@ if not st.session_state.logged_in:
     # 코스믹 히어로 (애니메이션 — components.html 안에서 JS 실행)
     _hero_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "hero.html")
     with open(_hero_path, "r", encoding="utf-8") as _f:
-        components.html(_f.read(), height=690, scrolling=False)
+        components.html(_f.read(), height=720, scrolling=False)
 
     # 마이웨이 소개 (로그인 전 인트로 — 이름 없는 일반 문구)
     _about_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "about.html")
@@ -324,10 +359,12 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     st.markdown('<div style="color:#64748B; font-size:11px; font-weight:600; letter-spacing:2px; padding:8px 16px 4px 16px;">MENU</div>', unsafe_allow_html=True)
+    from utils.nav import apply_pending_nav
+    apply_pending_nav()
     page = st.radio("메뉴", [
-        "홈", "스펙 입력", "스펙 분석", "선배 매칭", "학기 플래너", "로드맵",
-        "공부 스케줄", "비용 계산기", "채용공고 탐색"
-    ], label_visibility="collapsed")
+        "홈", "내 할 일", "스펙 입력", "스펙 분석", "선배 매칭", "학기 플래너", "로드맵",
+        "공부 스케줄", "교재·강의 추천", "비용 계산기", "채용공고 탐색"
+    ], label_visibility="collapsed", key="nav_page")
     st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
     if st.button("로그아웃", use_container_width=True):
         save_session(st.session_state.current_user)
@@ -337,14 +374,17 @@ with st.sidebar:
         clear_session()
         st.rerun()
 
+from utils.metrics import compute_readiness
+_readiness = compute_readiness(st.session_state)
+_readiness_txt = f"{_readiness}%" if _readiness is not None else "분석 전"
 st.markdown(f"""
-<div style="background:linear-gradient(135deg, rgba(30,58,95,0.6), rgba(10,22,40,0.6)); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:14px 24px; margin-bottom:20px; display:flex; align-items:center; gap:24px;">
+<div class="rd-banner" style="background:linear-gradient(135deg, rgba(30,58,95,0.6), rgba(10,22,40,0.6)); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:14px 24px; margin-bottom:20px; display:flex; align-items:center; flex-wrap:wrap; gap:24px;">
     <span style="color:#94A3B8; font-size:12px; font-weight:600; letter-spacing:1px;">준비도</span>
-    <span style="color:#60a5fa; font-size:20px; font-weight:900;">0%</span>
-    <div style="width:1px; height:20px; background:rgba(59,130,246,0.25);"></div>
+    <span style="color:#60a5fa; font-size:20px; font-weight:900;">{_readiness_txt}</span>
+    <div class="rd-div" style="width:1px; height:20px; background:rgba(59,130,246,0.25);"></div>
     <span style="color:#94A3B8; font-size:12px; font-weight:600; letter-spacing:1px;">목표</span>
     <span style="color:#F1F5F9; font-size:14px; font-weight:600;">{profile_job}</span>
-    <div style="width:1px; height:20px; background:rgba(59,130,246,0.25);"></div>
+    <div class="rd-div" style="width:1px; height:20px; background:rgba(59,130,246,0.25);"></div>
     <span style="color:#94A3B8; font-size:13px; margin-left:auto;">{display_name}님</span>
 </div>
 """, unsafe_allow_html=True)
@@ -364,7 +404,7 @@ if page == "홈":
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("준비도", "0%")
+        st.metric("준비도", _readiness_txt)
     with col2:
         st.metric("목표 직무", job)
     with col3:
@@ -373,15 +413,25 @@ if page == "홈":
         st.metric("학년", grade)
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<p style="color:#F1F5F9; font-size:18px; font-weight:700; margin-bottom:16px;">빠른 시작</p>', unsafe_allow_html=True)
+    from utils.nav import go_to
     c5, c6, c7 = st.columns(3)
     with c5:
         st.markdown('<div style="background:rgba(59,130,246,0.12); border-radius:16px; padding:24px; border:1px solid rgba(59,130,246,0.35); height:120px;"><p style="color:#60a5fa; font-size:14px; font-weight:700; margin:0;">STEP 1</p><p style="color:#F1F5F9; font-size:18px; font-weight:700; margin:8px 0 4px 0;">스펙 입력</p><p style="color:#94A3B8; font-size:13px; margin:0;">학교, 학점, 목표 직무 등 기본 정보를 입력하세요</p></div>', unsafe_allow_html=True)
+        if st.button("스펙 입력하러 가기", use_container_width=True, key="home_go_onb"):
+            go_to("스펙 입력")
     with c6:
         st.markdown('<div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:24px; border:1px solid rgba(59,130,246,0.15); height:120px;"><p style="color:#94A3B8; font-size:14px; font-weight:700; margin:0;">STEP 2</p><p style="color:#F1F5F9; font-size:18px; font-weight:700; margin:8px 0 4px 0;">AI 분석</p><p style="color:#94A3B8; font-size:13px; margin:0;">AI가 목표 직무 대비 준비도를 분석해드려요</p></div>', unsafe_allow_html=True)
+        if st.button("스펙 분석 받기", use_container_width=True, key="home_go_analysis"):
+            go_to("스펙 분석")
     with c7:
         st.markdown('<div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:24px; border:1px solid rgba(59,130,246,0.15); height:120px;"><p style="color:#94A3B8; font-size:14px; font-weight:700; margin:0;">STEP 3</p><p style="color:#F1F5F9; font-size:18px; font-weight:700; margin:8px 0 4px 0;">로드맵 받기</p><p style="color:#94A3B8; font-size:13px; margin:0;">맞춤 로드맵과 공부 스케줄을 자동으로 받으세요</p></div>', unsafe_allow_html=True)
+        if st.button("로드맵 만들러 가기", use_container_width=True, key="home_go_roadmap"):
+            go_to("로드맵")
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div style="background:linear-gradient(135deg, #0a1628, #1e3a5f); border:1px solid rgba(59,130,246,0.25); border-radius:16px; padding:32px; text-align:center;"><p style="color:#60a5fa; font-size:14px; font-weight:600; margin:0; letter-spacing:2px;">MY WAY</p><p style="color:#FFFFFF; font-size:20px; font-weight:700; margin:8px 0 0 0;">기존 서비스는 정보를 보여주지만, 마이웨이는 판단하고 행동한다</p></div>', unsafe_allow_html=True)
+elif page == "내 할 일":
+    from views.todo import show
+    show()
 elif page == "스펙 입력":
     from views.onboarding import show
     show()
@@ -399,6 +449,9 @@ elif page == "로드맵":
     show()
 elif page == "공부 스케줄":
     from views.schedule import show
+    show()
+elif page == "교재·강의 추천":
+    from views.resources import show
     show()
 elif page == "비용 계산기":
     from views.cost import show

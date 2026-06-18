@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.session import save_session
+from utils.nav import go_to
 
 # 카테고리별 좌측 컬러 바 (다크 블루 테마)
 CATEGORIES = ["전공필수", "전공선택", "교양필수", "교양선택", "자유선택"]
@@ -100,9 +101,11 @@ def show():
     st.session_state.setdefault("onb_has_double", bool(_dm.get("has")))
     st.session_state.setdefault("onb_double_field", _dm.get("field", ""))
     st.session_state.setdefault("onb_double_credits", _dm.get("credits", ""))
+    st.session_state.setdefault("onb_double_status", _dm.get("status") or "이수중")
     st.session_state.setdefault("onb_has_minor", bool(_mn.get("has")))
     st.session_state.setdefault("onb_minor_field", _mn.get("field", ""))
     st.session_state.setdefault("onb_minor_credits", _mn.get("credits", ""))
+    st.session_state.setdefault("onb_minor_status", _mn.get("status") or "이수중")
 
     # 동적 섹션 (폼 밖 — 추가/삭제/토글이 즉시 반영되도록)
     _course_manager()
@@ -118,7 +121,11 @@ def show():
             name = st.text_input("이름", value=_existing.get("name", ""), placeholder="홍길동")
             university = st.text_input("학교", value=_existing.get("university", ""), placeholder="OO대학교")
         with col2:
-            grade = st.selectbox("학년", ["1학년", "2학년", "3학년", "4학년", "졸업생"])
+            _grades = ["1학년", "2학년", "3학년", "4학년", "졸업생"]
+            grade = st.selectbox(
+                "학년", _grades,
+                index=_grades.index(_existing["grade"]) if _existing.get("grade") in _grades else 0,
+            )
             major = st.text_input("전공", value=_existing.get("major", ""), placeholder="컴퓨터공학과")
 
         st.divider()
@@ -187,3 +194,18 @@ def show():
                     save_session(st.session_state.current_user)
                 st.success(f"{name}님의 스펙이 저장됐어요!")
                 st.balloons()
+
+    # 저장된 프로필이 있으면 다음 단계로 이동 버튼 (폼 밖)
+    if st.session_state.get("user_profile"):
+        st.divider()
+        st.markdown('<p style="color:#94A3B8; font-size:13px;">입력이 끝났다면 바로 다음 단계로 가보세요</p>', unsafe_allow_html=True)
+        o1, o2, o3 = st.columns(3)
+        with o1:
+            if st.button("스펙 분석 받기", use_container_width=True, key="onb_to_analysis"):
+                go_to("스펙 분석")
+        with o2:
+            if st.button("선배 매칭 보기", use_container_width=True, key="onb_to_mentor"):
+                go_to("선배 매칭")
+        with o3:
+            if st.button("채용공고 보기", use_container_width=True, key="onb_to_jobs"):
+                go_to("채용공고 탐색")

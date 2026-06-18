@@ -1,8 +1,9 @@
 import streamlit as st
 from datetime import date
-from utils.claude_api import generate_schedule
+from utils.claude_api import generate_schedule, koreanize
 from utils.certs import next_exam_date
 from utils.session import save_session
+from utils.nav import go_to
 
 
 def _sync_deadline():
@@ -19,6 +20,8 @@ def show():
 
     if not st.session_state.get("user_profile"):
         st.warning("먼저 스펙 입력을 완료해주세요")
+        if st.button("스펙 입력하러 가기", type="primary"):
+            go_to("스펙 입력")
         return
 
     profile = st.session_state.user_profile
@@ -84,16 +87,13 @@ def show():
 
     if st.session_state.get("schedule_result"):
         st.divider()
-        result = st.session_state.schedule_result
-        st.markdown(f"""
-        <div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:32px;
-             border:1px solid rgba(59,130,246,0.2); margin-bottom:16px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:24px;">
-                <div style="width:8px; height:8px; border-radius:50%; background:#3b82f6;"></div>
-                <span style="color:#60a5fa; font-size:13px; font-weight:700; letter-spacing:1px;">AI 분석 완료</span>
-            </div>
-            <div style="color:#CBD5E1; font-size:15px; line-height:1.8;">
-                {result}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        result = koreanize(st.session_state.schedule_result)
+        st.markdown(
+            '<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">'
+            '<div style="width:8px; height:8px; border-radius:50%; background:#3b82f6;"></div>'
+            '<span style="color:#60a5fa; font-size:13px; font-weight:700; letter-spacing:1px;">AI 분석 완료</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        with st.container(border=True):
+            st.markdown(result)

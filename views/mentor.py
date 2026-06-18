@@ -1,8 +1,9 @@
 import re
 import streamlit as st
 from utils.seniors import match_seniors, get_senior
-from utils.claude_api import compare_with_senior
+from utils.claude_api import compare_with_senior, koreanize
 from utils.session import save_session
+from utils.nav import go_to
 
 
 def _track_text(track):
@@ -81,6 +82,7 @@ def _compare_table(profile, s):
 
 # ===== AI 갭 분석 결과 렌더 (완성도 게이지 + 아코디언) =====
 def _render_result(text):
+    text = koreanize(text)
     # 완성도 파싱
     pct = None
     m = re.search(r"완성도[^\d]*(\d{1,3})\s*%", text)
@@ -129,6 +131,8 @@ def show():
 
     if not st.session_state.get("user_profile"):
         st.warning("먼저 스펙 입력을 완료해주세요")
+        if st.button("스펙 입력하러 가기", type="primary"):
+            go_to("스펙 입력")
         return
 
     profile = st.session_state.user_profile
@@ -167,3 +171,15 @@ def show():
             st.markdown(f'<p style="color:#FFFFFF; font-size:18px; font-weight:700; margin-bottom:12px;">{senior["nickname"]} vs 나 · 갭 분석</p>', unsafe_allow_html=True)
             _compare_table(profile, senior)
             _render_result(mr["text"])
+
+            st.divider()
+            st.markdown('<p style="color:#94A3B8; font-size:13px;">이 선배 기준으로 다음 단계를 이어가 보세요</p>', unsafe_allow_html=True)
+            n1, n2 = st.columns(2)
+            with n1:
+                if st.button("이 선배로 로드맵 만들기", use_container_width=True, key="mentor_to_roadmap"):
+                    st.session_state.planner_senior_id = mr["senior_id"]
+                    go_to("로드맵")
+            with n2:
+                if st.button("학기 플래너로 이어가기", use_container_width=True, key="mentor_to_planner"):
+                    st.session_state.planner_senior_id = mr["senior_id"]
+                    go_to("학기 플래너")

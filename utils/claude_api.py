@@ -1,18 +1,93 @@
+import json
+import os
+import re
 from groq import Groq
 
-client = Groq(api_key="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")
+_client = None
+
+# 한국어 전용 지시어 (모든 호출 system 프롬프트에 자동 주입).
+# 한자/중국어/일본어 문자는 금지하되, 자격증명·회사명 등 고유명사 영문은 허용.
+KOREAN_ONLY = (
+    " [언어 규칙] 반드시 한국어(한글)로만 작성하세요. "
+    "한자(漢字), 중국어, 일본어 문자를 절대 사용하지 마세요. "
+    "모든 단어를 한글로 풀어 쓰되(예: 成功 → 성공), "
+    "자격증명·회사명·기술용어 등 고유명사만 영문 그대로 둬도 됩니다."
+)
+
+# 중국어/일본어 문자 감지 (한글 AC00-D7A3은 제외). CJK 한자 + 가나.
+_NON_KOREAN_CJK = re.compile(r"[぀-ヿ㐀-䶿一-鿿]")
+
+# LLaMA가 한국어에 자주 섞는 중국어/한자 → 한글 치환 (최종 안전망).
+# 여러 글자 단어를 먼저 치환하도록 순서 유지.
+_KOREANIZE = {
+    "阶段": "단계", "階段": "단계", "成功": "성공", "积累": "축적", "積累": "축적",
+    "经验": "경험", "經驗": "경험", "经력": "경력", "时间": "시간", "技术": "기술",
+    "开发": "개발", "项目": "프로젝트", "学生": "학생", "能力": "능력", "优势": "강점",
+    "现": "현", "現": "현", "年": "년", "的": "",
+}
+
+
+def koreanize(text):
+    """남은 흔한 중국어/한자 잔재를 한글로 치환. 완벽하진 않지만 자주 나오는 건 잡는다."""
+    if not text:
+        return text
+    for k, v in _KOREANIZE.items():
+        text = text.replace(k, v)
+    return text
+
+
+def _get_api_key():
+    """API 키를 st.secrets → 환경변수 순으로 안전하게 읽는다. 코드에 하드코딩하지 않음."""
+    try:
+        import streamlit as st
+        if "GROQ_API_KEY" in st.secrets:
+            return st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
+    return os.environ.get("GROQ_API_KEY", "")
+
+
+def _get_client():
+    """Groq 클라이언트를 지연 생성. 키가 없으면 None."""
+    global _client
+    if _client is None:
+        key = _get_api_key()
+        if not key:
+            return None
+        _client = Groq(api_key=key)
+    return _client
+
 
 def call_ai(prompt, system="", max_tokens=2000):
-    try:
+    client = _get_client()
+    if client is None:
+        return "API 키가 설정되지 않았어요. .streamlit/secrets.toml에 GROQ_API_KEY를 넣어주세요."
+    base = system or "당신은 대학생 취업 전문 AI 비서입니다."
+
+    def _run(extra="", temperature=0.5):
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": system or "당신은 대학생 취업 전문 AI 비서입니다. 한국어로 답변하세요."},
+                {"role": "system", "content": base + KOREAN_ONLY + extra},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            temperature=temperature
         )
         return response.choices[0].message.content
+
+    try:
+        out = _run()
+        # 중국어/일본어 문자가 섞이면 더 강한 지시 + 낮은 temperature로 최대 3회 재시도
+        attempts = 0
+        while out and _NON_KOREAN_CJK.search(out) and attempts < 3:
+            out = _run(
+                " 앞선 답변에 한자/외국 문자가 섞였습니다. 단 하나의 한자도 쓰지 말고 모든 문자를 한글로만 다시 작성하세요.",
+                temperature=0.0,
+            )
+            attempts += 1
+        # 그래도 남은 흔한 한자는 최종 치환으로 정리
+        return koreanize(out)
     except Exception as e:
         return f"오류가 발생했어요: {str(e)}"
 
@@ -33,8 +108,10 @@ def analyze_spec(profile):
 
 다음 형식으로 분석해주세요:
 
+맨 첫 줄에 정확히 이 형식으로 목표 직무 대비 준비도를 써라: `완성도: NN%`
+
 ## 준비도 분석
-목표 직무 대비 현재 준비도를 퍼센트로 표시하고 이유를 설명해주세요.
+위 완성도 퍼센트의 이유를 설명해주세요.
 
 ## 잘하고 있는 부분
 현재 스펙에서 강점 3가지
@@ -49,25 +126,55 @@ def analyze_spec(profile):
 가장 먼저 해야 할 일 1가지"""
     return call_ai(prompt)
 
-def generate_roadmap(profile):
-    prompt = f"""{profile['name']}님의 취준 로드맵을 만들어주세요.
+def generate_roadmap(profile, senior=None):
+    """선배 롤모델 + 내 스펙 + 자격증 가이드/2026 시험 일정을 근거로 4단계 로드맵 생성."""
+    user_specs = f"""- 전공: {profile.get('major', '미입력')} / {profile.get('grade', '')}
+- 학점: {profile.get('gpa', '미입력')} / 4.5
+- 어학: {profile.get('english') or '없음'}
+- 보유 자격증: {profile.get('certificates') or '없음'}
+- 경험(인턴/대외활동): {profile.get('activities') or '없음'}
+- 수강 과목: {_fmt_courses(profile.get('courses'))}
+- {_fmt_major_track(profile.get('double_major'), '복수전공')}
+- 공부 가능 시간: 평일 {profile.get('weekday_hours', '-')}시간, 주말 {profile.get('weekend_hours', '-')}시간"""
 
-- 목표 직무: {profile['target_job']}
-- 학년: {profile['grade']}
-- 현재 자격증: {profile.get('certificates', '없음')}
-- 평일 {profile['weekday_hours']}시간, 주말 {profile['weekend_hours']}시간 공부 가능
+    if senior:
+        target = f"{senior['company']} · {senior['job']}"
+        senior_block = f"""
+[롤모델 선배 스펙 ({target} 합격)]
+- 전공: {senior['major']} / 학점 {senior['gpa']}
+- 자격증: {', '.join(senior['certificates'])}
+- 경험: {', '.join(senior['activities'])}
+- 핵심 조언: {senior.get('keyAdvice', '')}"""
+    else:
+        target = f"{profile.get('target_company') or '목표 기업'} · {profile.get('target_job', '목표 직무')}"
+        senior_block = ""
 
-한국어만 사용해주세요. 다른 언어(중국어, 태국어 등) 절대 섞지 마세요.
-각 단계별로 구체적인 행동을 3가지씩 제시해주세요.
+    from utils.certs import cert_guide_text
+    cert_guide = cert_guide_text(profile.get("major", ""))
+    cert_block = f"\n\n[자격증 가이드 + 2026 시험 일정 (이 날짜에 맞춰 단계 배치)]\n{cert_guide}" if cert_guide else ""
 
-## 단계별 로드맵
-### 1단계 (지금 당장)
-### 2단계 (1~3개월)
-### 3단계 (3~6개월)
-### 4단계 (6개월 이후)
-## 필수 자격증 목록 (우선순위 순)
-## 인턴십/공모전 추천"""
-    return call_ai(prompt)
+    system = f"""너는 대학생 취업 로드맵 전문가야. 사용자의 현재 스펙과 롤모델 선배를 비교해, 목표까지 가는 단계별 로드맵을 만든다.
+
+[사용자 스펙]
+{user_specs}
+{senior_block}
+[목표] {target}{cert_block}
+
+[작성 규칙]
+- 반드시 아래 6개 섹션을 정확한 마크다운 제목으로 작성:
+  `## 🚀 1단계 · 지금 당장`
+  `## 📈 2단계 · 1~3개월`
+  `## 🎯 3단계 · 3~6개월`
+  `## 🏆 4단계 · 6개월 이후`
+  `## 📜 추천 자격증 (우선순위)`
+  `## 💼 인턴십·공모전 추천`
+- 1~4단계는 각각 자격증/스킬/경험/취업준비 관점에서 구체적 행동 2~3개를 '- ' 글머리로 작성
+- 선배 대비 부족한 부분을 우선 배치하고, 자격증은 2026 시험 일정에 맞춰 어느 단계에 딸지 명시
+- 추천 자격증은 우선순위 순으로, 난이도와 예상 준비 기간 포함
+- 실행 가능한 구체적 행동 위주, 격려와 현실적 조언의 균형
+- 한국어로만 작성"""
+
+    return call_ai("위 정보를 바탕으로 단계별 로드맵을 작성해줘.", system=system, max_tokens=2800)
 
 def generate_schedule(profile, target, deadline):
     prompt = f"""{profile['name']}님의 맞춤 공부 스케줄을 만들어주세요.
@@ -178,6 +285,114 @@ def compare_with_senior(profile, senior):
 - 한국어로만 작성"""
 
     return call_ai("위 정보를 바탕으로 갭 분석을 작성해줘.", system=system, max_tokens=3500)
+
+def _extract_json(text):
+    """AI 응답에서 JSON 객체만 안전하게 추출. 실패 시 None."""
+    if not text:
+        return None
+    t = text.strip()
+    # 코드펜스 제거
+    t = re.sub(r"^```(?:json)?\s*", "", t)
+    t = re.sub(r"\s*```$", "", t).strip()
+    start, end = t.find("{"), t.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    chunk = t[start:end + 1]
+    try:
+        return json.loads(chunk)
+    except Exception:
+        # 후행 콤마 등 흔한 오류 1회 보정 시도
+        fixed = re.sub(r",\s*([}\]])", r"\1", chunk)
+        try:
+            return json.loads(fixed)
+        except Exception:
+            return None
+
+
+def generate_semester_plan(profile, senior, semester_info, sem_labels, gap_text=""):
+    """선배 롤모델 + 내 스펙 + 시험 일정을 근거로 학기별 실행 계획(JSON)을 생성.
+    sem_labels: [{"id","label"}] 남은 학기 목록(현재 학기부터, 달력 기준).
+    반환: planner.py가 렌더하는 dict (overview/target/immediateActions/semesters). 실패 시 None."""
+    user_specs = f"""- 전공: {profile.get('major', '미입력')} / {profile.get('grade', '')}
+- 학점: {profile.get('gpa', '미입력')} / 4.5
+- 어학: {profile.get('english') or '없음'}
+- 보유 자격증: {profile.get('certificates') or '없음'}
+- 경험(인턴/대외활동): {profile.get('activities') or '없음'}
+- 수강 과목: {_fmt_courses(profile.get('courses'))}
+- {_fmt_major_track(profile.get('double_major'), '복수전공')}
+- {_fmt_major_track(profile.get('minor'), '부전공')}
+- 목표 직무: {profile.get('target_job', '미정')}
+- 목표 회사: {profile.get('target_company') or '미정'}"""
+
+    senior_specs = f"""- 닉네임: {senior['nickname']}
+- 전공: {senior['major']}
+- 학점: {senior['gpa']} / 4.5
+- 어학: {senior['english']}
+- 자격증: {', '.join(senior['certificates'])}
+- 경험: {', '.join(senior['activities'])}
+- 수강 과목: {_fmt_courses(senior.get('courses'))}
+- {_fmt_major_track(senior.get('doubleMajor'), '복수전공')}
+- 선배 핵심 조언: {senior.get('keyAdvice', '')}
+- 선배 추천 과목: {', '.join(senior.get('courseRecommendation', []))}"""
+
+    target = f"{senior['company']} · {senior['job']}"
+    max_credits = semester_info.get("maxCredits", 18)
+
+    sem_list = "\n".join(f'  {i+1}. id="{s["id"]}", label="{s["label"]}"'
+                         for i, s in enumerate(sem_labels))
+
+    from utils.certs import cert_guide_text
+    cert_guide = cert_guide_text(profile.get("major", ""))
+    cert_block = f"\n\n[전공 자격증 가이드 + 2026 시험 일정 (이 날짜 기준으로 학기 배치)]\n{cert_guide}" if cert_guide else ""
+    gap_block = f"\n\n[참고: 이미 수행된 AI 갭 분석 요약]\n{gap_text[:1500]}" if gap_text else ""
+
+    system = f"""너는 대학생 취업 준비 학기 플래너 AI다. 사용자의 현재 스펙과 롤모델 선배의 합격 스펙을 비교해, 남은 학기 동안 무엇을 해야 하는지 학기별 실행 계획을 만든다.
+
+[사용자 스펙]
+{user_specs}
+
+[롤모델 선배 스펙 ({target} 합격)]
+{senior_specs}
+
+[남은 학기 목록 (반드시 이 id/label 그대로 사용, 첫 학기 status는 "current")]
+{sem_list}
+
+[제약]
+- 각 학기 수강 과목 학점 합계는 {max_credits}학점을 넘지 마라.
+- 선배가 듣고 내가 안 들은 과목, 선배가 가졌고 내가 없는 자격증을 우선 배치하라.
+- 자격증은 위 2026 시험 일정에 맞는 학기에 배치하라 (예: 8월 시험이면 그 직전 학기).
+- urgency는 정확히 "critical", "high", "medium", "low" 중 하나만 사용.
+- readinessBefore/After는 0~100 정수, 학기를 거치며 점진적으로 상승, 마지막 학기 After는 targetReadiness 근처.
+- 모든 텍스트는 한국어. em dash(—) 쓰지 말 것.{cert_block}{gap_block}
+
+[출력 형식 - 오직 아래 JSON 한 개만 출력. 설명/마크다운/코드펜스 금지]
+{{
+  "overview": {{"totalReadiness": 정수, "targetReadiness": 정수, "criticalGaps": 정수, "estimatedMonths": 정수}},
+  "target": "{target}",
+  "immediateActions": [
+    {{"action": "이번 주에 할 구체적 행동", "deadline": "D-NN", "urgency": "critical|high|medium|low"}}
+  ],
+  "semesters": [
+    {{
+      "id": "위 목록의 id",
+      "label": "위 목록의 label",
+      "status": "current 또는 upcoming",
+      "summary": "이 학기 한 줄 테마",
+      "readinessBefore": 정수,
+      "readinessAfter": 정수,
+      "courses": [{{"name": "과목명", "category": "전공필수|전공선택|교양", "credits": 정수, "urgency": "...", "reason": "왜 이 학기에 듣는지 1줄"}}],
+      "certifications": [{{"name": "자격증명", "difficulty": "하|중|중상|상", "prepMonths": 정수, "urgency": "...", "reason": "1줄 이유 (시험일 언급)"}}],
+      "activities": [{{"type": "인턴|프로젝트|공모전|포트폴리오|취업준비", "name": "활동명", "period": "시기", "urgency": "...", "reason": "1줄"}}],
+      "goals": ["이 학기 목표 1", "목표 2", "목표 3"]
+    }}
+  ]
+}}
+- immediateActions는 2~4개. semesters는 위 학기 목록과 동일한 개수.
+- 마지막 학기는 보통 취업 지원/면접 준비 중심."""
+
+    raw = call_ai("위 정보를 바탕으로 학기별 실행 계획 JSON을 생성해줘.", system=system, max_tokens=4000)
+    return _extract_json(raw)
+
 
 def recommend_resources(profile, subject):
     prompt = f"""{profile['target_job']}를 목표로 하는 대학생에게 {subject} 관련 학습 리소스를 추천해주세요.

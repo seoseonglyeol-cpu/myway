@@ -33,7 +33,8 @@ def save_session(username):
     data = {}
     for key in ["user_profile", "analysis_result", "roadmap_result",
                 "schedule_result", "resources_result", "progress_data", "mentor_result",
-                "semester_info"]:
+                "semester_info", "planner_plan", "planner_senior_id",
+                "roadmap_senior_id", "todos", "todo_seq"]:
         if st.session_state.get(key):
             data[key] = st.session_state[key]
     with open(os.path.join(BASE_DIR, f"session_{username}.json"), "w", encoding="utf-8") as f:
@@ -50,6 +51,7 @@ def load_session(username):
 def clear_session():
     for key in ["user_profile", "analysis_result", "roadmap_result",
                 "schedule_result", "resources_result", "jobs", "progress_data", "mentor_result",
-                "semester_info"]:
+                "semester_info", "planner_plan", "planner_senior_id",
+                "roadmap_senior_id"]:
         if key in st.session_state:
             del st.session_state[key]

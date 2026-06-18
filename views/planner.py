@@ -1,5 +1,9 @@
+from datetime import date
 import streamlit as st
 from utils.session import save_session
+from utils.seniors import match_seniors, get_senior
+from utils.claude_api import generate_semester_plan
+from utils.nav import go_to
 
 # =====================================================================
 # 학기 플래너 — 1차: A(학기 정보 입력) + C(타임라인 UI), 더미 데이터
@@ -97,6 +101,24 @@ def _clean(html):
     return "".join(line.strip() for line in html.splitlines())
 
 
+def _upcoming_semesters(remaining, today=None):
+    """오늘(달력) 기준 현재 학기부터 remaining개 학기 라벨 생성.
+    3~8월=1학기, 그 외=2학기. 반환: [{"id","label"}]"""
+    today = today or date.today()
+    year = today.year
+    term = 1 if 3 <= today.month <= 8 else 2
+    if today.month <= 2:  # 1,2월은 직전 연도 2학기 취급
+        year -= 1
+    out = []
+    for _ in range(max(remaining, 1)):
+        out.append({"id": f"{year}-{term}", "label": f"{year}년 {term}학기"})
+        if term == 1:
+            term = 2
+        else:
+            term, year = 1, year + 1
+    return out
+
+
 def _badge(urgency):
     bg, color, border, emoji, label = URGENCY.get(urgency, URGENCY["low"])
     return (f'<span style="background:{bg}; color:{color}; border:1px solid {border}; '
@@ -104,8 +126,8 @@ def _badge(urgency):
 
 
 def _overview_card(plan, remaining):
-    ov = plan["overview"]
-    cur, tgt = ov["totalReadiness"], ov["targetReadiness"]
+    ov = plan.get("overview", {})
+    cur, tgt = ov.get("totalReadiness", 0), ov.get("targetReadiness", 90)
     return f"""
     <div style="background:rgba(15,23,42,0.6); border:1px solid rgba(59,130,246,0.15); border-radius:16px; padding:24px; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
@@ -118,8 +140,8 @@ def _overview_card(plan, remaining):
         </div>
         <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
             <span style="background:rgba(59,130,246,0.12); color:#93c5fd; font-size:12px; font-weight:600; padding:5px 12px; border-radius:12px; border:1px solid rgba(59,130,246,0.25);">⏰ 남은 학기 {remaining}학기</span>
-            <span style="background:rgba(59,130,246,0.12); color:#93c5fd; font-size:12px; font-weight:600; padding:5px 12px; border-radius:12px; border:1px solid rgba(59,130,246,0.25);">🎯 {plan['target']}</span>
-            <span style="background:rgba(239,68,68,0.12); color:#fca5a5; font-size:12px; font-weight:600; padding:5px 12px; border-radius:12px; border:1px solid rgba(239,68,68,0.25);">⚠️ 핵심 갭 {ov['criticalGaps']}개</span>
+            <span style="background:rgba(59,130,246,0.12); color:#93c5fd; font-size:12px; font-weight:600; padding:5px 12px; border-radius:12px; border:1px solid rgba(59,130,246,0.25);">🎯 {plan.get('target','')}</span>
+            <span style="background:rgba(239,68,68,0.12); color:#fca5a5; font-size:12px; font-weight:600; padding:5px 12px; border-radius:12px; border:1px solid rgba(239,68,68,0.25);">⚠️ 핵심 갭 {ov.get('criticalGaps',0)}개</span>
         </div>
     </div>
     """
@@ -127,13 +149,13 @@ def _overview_card(plan, remaining):
 
 def _immediate_card(plan):
     items = ""
-    for a in plan["immediateActions"]:
-        bg, color, border, emoji, _ = URGENCY.get(a["urgency"], URGENCY["low"])
+    for a in plan.get("immediateActions", []):
+        bg, color, border, emoji, _ = URGENCY.get(a.get("urgency"), URGENCY["low"])
         items += f"""
         <div style="display:flex; align-items:center; gap:10px; background:rgba(15,23,42,0.5); border:1px solid {border}; border-radius:10px; padding:11px 14px; margin-bottom:8px;">
             <span style="color:{color}; font-size:16px;">☐</span>
-            <span style="color:#FFFFFF; font-size:13px; font-weight:500; flex:1;">{a['action']}</span>
-            <span style="color:{color}; font-size:12px; font-weight:700;">{emoji} {a['deadline']}</span>
+            <span style="color:#FFFFFF; font-size:13px; font-weight:500; flex:1;">{a.get('action','')}</span>
+            <span style="color:{color}; font-size:12px; font-weight:700;">{emoji} {a.get('deadline','')}</span>
         </div>
         """
     return f"""
@@ -148,7 +170,7 @@ def _immediate_card(plan):
 
 
 def _semester_node(sem, is_last):
-    is_current = sem["status"] == "current"
+    is_current = sem.get("status") == "current"
     # 노드 점
     if is_current:
         dot = ('<div class="pl-node-current" style="width:16px; height:16px; border-radius:50%; '
@@ -171,50 +193,50 @@ def _semester_node(sem, is_last):
 
     courses_html = "".join(
         f'<div style="display:flex; align-items:center; gap:8px; padding:5px 0;">'
-        f'<span style="color:#FFFFFF; font-size:13px; font-weight:600; flex:1;">{c["name"]}</span>'
-        f'<span style="color:rgba(255,255,255,0.4); font-size:11px;">{c["category"]} · {c["credits"]}학점</span>'
-        f'{_badge(c["urgency"])}</div>'
-        f'<div style="color:rgba(255,255,255,0.35); font-size:11px; padding-bottom:6px;">{c["reason"]}</div>'
-        for c in sem["courses"]
+        f'<span style="color:#FFFFFF; font-size:13px; font-weight:600; flex:1;">{c.get("name","")}</span>'
+        f'<span style="color:rgba(255,255,255,0.4); font-size:11px;">{c.get("category","")} · {c.get("credits","-")}학점</span>'
+        f'{_badge(c.get("urgency"))}</div>'
+        f'<div style="color:rgba(255,255,255,0.35); font-size:11px; padding-bottom:6px;">{c.get("reason","")}</div>'
+        for c in sem.get("courses", [])
     )
     certs_html = "".join(
         f'<div style="display:flex; align-items:center; gap:8px; padding:5px 0;">'
-        f'<span style="color:#FFFFFF; font-size:13px; font-weight:600; flex:1;">{c["name"]}</span>'
-        f'<span style="color:rgba(255,255,255,0.4); font-size:11px;">난이도 {c["difficulty"]} · {c["prepMonths"]}개월</span>'
-        f'{_badge(c["urgency"])}</div>'
-        for c in sem["certifications"]
+        f'<span style="color:#FFFFFF; font-size:13px; font-weight:600; flex:1;">{c.get("name","")}</span>'
+        f'<span style="color:rgba(255,255,255,0.4); font-size:11px;">난이도 {c.get("difficulty","-")} · {c.get("prepMonths","-")}개월</span>'
+        f'{_badge(c.get("urgency"))}</div>'
+        for c in sem.get("certifications", [])
     )
     acts_html = "".join(
         f'<div style="display:flex; align-items:center; gap:8px; padding:5px 0;">'
-        f'<span style="color:#FFFFFF; font-size:13px; font-weight:600; flex:1;">{a["name"]}</span>'
-        f'<span style="color:rgba(255,255,255,0.4); font-size:11px;">{a["period"]}</span>'
-        f'{_badge(a["urgency"])}</div>'
-        for a in sem["activities"]
+        f'<span style="color:#FFFFFF; font-size:13px; font-weight:600; flex:1;">{a.get("name","")}</span>'
+        f'<span style="color:rgba(255,255,255,0.4); font-size:11px;">{a.get("period","")}</span>'
+        f'{_badge(a.get("urgency"))}</div>'
+        for a in sem.get("activities", [])
     )
     goals_html = "".join(
         f'<div style="color:rgba(255,255,255,0.75); font-size:13px; padding:4px 0;">☐ {g}</div>'
-        for g in sem["goals"]
+        for g in sem.get("goals", [])
     )
 
-    growth = sem["readinessAfter"] - sem["readinessBefore"]
+    growth = sem.get("readinessAfter", 0) - sem.get("readinessBefore", 0)
     cur_tag = '<span style="color:#3b82f6; font-size:12px; font-weight:700; margin-left:6px;">(현재)</span>' if is_current else ""
 
     card = f"""
     <div style="flex:1; background:rgba(15,23,42,0.6); border:1px solid rgba(59,130,246,0.15); border-radius:16px; padding:20px; margin-bottom:18px;">
         <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px;">
-            <div style="color:#FFFFFF; font-size:16px; font-weight:700;">{sem['label']}{cur_tag}</div>
-            <div style="color:#93c5fd; font-size:13px; font-weight:700;">준비도 {sem['readinessBefore']}% → {sem['readinessAfter']}% <span style="color:#86efac;">(+{growth}%)</span></div>
+            <div style="color:#FFFFFF; font-size:16px; font-weight:700;">{sem.get('label','')}{cur_tag}</div>
+            <div style="color:#93c5fd; font-size:13px; font-weight:700;">준비도 {sem.get('readinessBefore',0)}% → {sem.get('readinessAfter',0)}% <span style="color:#86efac;">(+{growth}%)</span></div>
         </div>
-        <div style="color:rgba(255,255,255,0.5); font-size:13px; margin-top:4px;">{sem['summary']}</div>
+        <div style="color:rgba(255,255,255,0.5); font-size:13px; margin-top:4px;">{sem.get('summary','')}</div>
         {section("📚 수강 과목", courses_html)}
         {section("📜 자격증", certs_html)}
         {section("💼 활동", acts_html)}
         {section("🎯 이 학기 목표", goals_html)}
         <div style="margin-top:14px;">
             <div style="background:rgba(148,163,184,0.18); border-radius:5px; height:8px; overflow:hidden;">
-                <div style="background:linear-gradient(90deg,#1e40af,#3b82f6); height:100%; width:{sem['readinessAfter']}%; border-radius:5px;"></div>
+                <div style="background:linear-gradient(90deg,#1e40af,#3b82f6); height:100%; width:{sem.get('readinessAfter',0)}%; border-radius:5px;"></div>
             </div>
-            <div style="color:rgba(255,255,255,0.4); font-size:11px; margin-top:5px;">이 학기 달성 시 준비도 {sem['readinessAfter']}%</div>
+            <div style="color:rgba(255,255,255,0.4); font-size:11px; margin-top:5px;">이 학기 달성 시 준비도 {sem.get('readinessAfter',0)}%</div>
         </div>
     </div>
     """
@@ -231,16 +253,24 @@ def _semester_node(sem, is_last):
 
 
 def _timeline(plan):
+    sems = plan.get("semesters", [])
     nodes = "".join(
-        _semester_node(s, is_last=(i == len(plan["semesters"]) - 1))
-        for i, s in enumerate(plan["semesters"])
+        _semester_node(s, is_last=(i == len(sems) - 1))
+        for i, s in enumerate(sems)
     )
     return f'<div style="margin-top:8px;">{nodes}</div>'
 
 
 def show():
     st.title("학기 플래너")
-    st.caption("갭 분석을 넘어, 남은 학기별 실행 계획을 타임라인으로 보여줘요")
+    st.caption("남은 학기별(2026 2학기, 2027 1학기…)로 과목·자격증·활동을 시험 일정에 맞춰 배치해요")
+    with st.expander("학기 플래너 vs 로드맵, 뭐가 달라요?"):
+        st.markdown(
+            "- **학기 플래너 (지금 여기)**: *학기 축* 으로 과목·자격증을 시험 일정에 맞춰 배치 (수강 학점 고려)\n"
+            "- **로드맵**: *시간 축* (지금 / 1~3개월 / 3~6개월 / 6개월+)으로 큰 흐름과 우선순위만 빠르게"
+        )
+        if st.button("로드맵으로 가기", key="pl_to_roadmap"):
+            go_to("로드맵")
     st.divider()
 
     # ===== A. 내 학기 정보 입력 =====
@@ -289,10 +319,82 @@ def show():
 
     st.divider()
 
-    # ===== C. 타임라인 UI (더미 데이터) =====
-    st.info("아래는 AI 연동 전 **더미 데이터** 미리보기예요 (다음 단계에서 실제 AI 생성으로 교체)")
+    # ===== B. AI 학기 플랜 생성 =====
+    if not st.session_state.get("user_profile"):
+        st.warning("먼저 스펙 입력을 완료하면 AI가 맞춤 학기 플랜을 만들어드려요")
+        if st.button("스펙 입력하러 가기", type="primary"):
+            go_to("스펙 입력")
+        return
+
+    profile = st.session_state.user_profile
+    seniors = match_seniors(profile)
+    if not seniors:
+        st.warning("매칭되는 선배가 없어 플랜을 만들 수 없어요")
+        return
+
+    st.markdown('<p style="color:#FFFFFF; font-size:16px; font-weight:700;">🤖 AI 학기 플랜 생성</p>', unsafe_allow_html=True)
+    st.caption("롤모델 선배를 기준으로, 내 스펙 갭과 2026 시험 일정을 반영해 학기별 계획을 만들어요")
+
+    labels = {f"{s['nickname']} · {s['company']} {s['job']}": s["id"] for s in seniors}
+    # 선배 매칭에서 이미 고른 선배가 있으면 기본 선택
+    default_idx = 0
+    prev_id = st.session_state.get("planner_senior_id") or \
+        (st.session_state.get("mentor_result") or {}).get("senior_id")
+    if prev_id in labels.values():
+        default_idx = list(labels.values()).index(prev_id)
+
+    picked_label = st.selectbox("롤모델 선배", list(labels.keys()), index=default_idx)
+    picked_id = labels[picked_label]
+
+    def _run_generation():
+        senior = get_senior(picked_id)
+        sem_labels = _upcoming_semesters(remaining)
+        gap_text = (st.session_state.get("mentor_result") or {}).get("text", "")
+        with st.spinner("AI가 선배 스펙과 시험 일정을 비교해 학기별 계획을 짜고 있어요..."):
+            plan = generate_semester_plan(profile, senior, st.session_state.semester_info, sem_labels, gap_text)
+        if plan and plan.get("semesters"):
+            st.session_state.planner_plan = plan
+            st.session_state.planner_senior_id = picked_id
+            if st.session_state.get("current_user"):
+                save_session(st.session_state.current_user)
+            st.rerun()
+        else:
+            st.error("플랜 생성에 실패했어요. 다시 시도해주세요.")
+
+    has_plan = bool(st.session_state.get("planner_plan"))
+    if not has_plan:
+        if st.button("AI 학기 플랜 생성", type="primary", use_container_width=True):
+            _run_generation()
+    else:
+        # 선택한 선배가 현재 플랜의 선배와 다르면 안내
+        if picked_id != st.session_state.get("planner_senior_id"):
+            st.caption("선배를 바꿨어요. '다시 생성'을 누르면 새 선배 기준으로 플랜을 다시 만들어요.")
+        g1, g2 = st.columns([2, 1])
+        with g1:
+            if st.button("🔄 플랜 다시 생성", type="primary", use_container_width=True):
+                _run_generation()
+        with g2:
+            if st.button("🗑️ 플랜 지우기", use_container_width=True):
+                st.session_state.pop("planner_plan", None)
+                st.session_state.pop("planner_senior_id", None)
+                if st.session_state.get("current_user"):
+                    save_session(st.session_state.current_user)
+                st.rerun()
+
+    st.divider()
+
+    # ===== C. 타임라인 렌더 (실제 플랜 우선, 없으면 예시) =====
+    plan = st.session_state.get("planner_plan")
+    if plan:
+        sr = get_senior(st.session_state.get("planner_senior_id"))
+        if sr:
+            st.success(f"**{sr['nickname']}** ({sr['company']} · {sr['job']}) 기준으로 만든 맞춤 플랜이에요")
+    else:
+        plan = DUMMY_PLAN
+        st.info("아래는 **예시 미리보기**예요. 위에서 선배를 고르고 'AI 학기 플랜 생성'을 누르면 내 맞춤 플랜으로 바뀌어요")
+
     st.markdown(STYLE, unsafe_allow_html=True)
-    st.markdown(_clean(_overview_card(DUMMY_PLAN, remaining)), unsafe_allow_html=True)
-    st.markdown(_clean(_immediate_card(DUMMY_PLAN)), unsafe_allow_html=True)
+    st.markdown(_clean(_overview_card(plan, remaining)), unsafe_allow_html=True)
+    st.markdown(_clean(_immediate_card(plan)), unsafe_allow_html=True)
     st.markdown('<p style="color:#FFFFFF; font-size:16px; font-weight:700; margin-bottom:8px;">🗓️ 학기별 타임라인</p>', unsafe_allow_html=True)
-    st.markdown(_clean(_timeline(DUMMY_PLAN)), unsafe_allow_html=True)
+    st.markdown(_clean(_timeline(plan)), unsafe_allow_html=True)
