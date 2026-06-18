@@ -24,18 +24,22 @@ st.markdown("""
     background-attachment: fixed !important;
 }
 section[data-testid="stSidebar"] {
-    display: block !important;
     background: linear-gradient(180deg, #020617 0%, #0a1628 100%) !important;
     border-right: 1px solid rgba(59,130,246,0.15) !important;
-    min-width: 280px !important;
-    width: 280px !important;
-    transform: none !important;
 }
-section[data-testid="stSidebar"] > div:first-child { width: 280px !important; }
 section[data-testid="stSidebar"] * { color: #E5E7EB; }
-button[kind="header"],
-[data-testid="collapsedControl"],
-[data-testid="stSidebarCollapseButton"] { display: none !important; }
+/* 데스크톱: 사이드바 항상 펼침 + 접기 버튼 숨김 */
+@media (min-width: 769px) {
+    section[data-testid="stSidebar"] {
+        display: block !important;
+        min-width: 280px !important; width: 280px !important; transform: none !important;
+    }
+    section[data-testid="stSidebar"] > div:first-child { width: 280px !important; }
+    button[kind="header"],
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapsedControl"] { display: none !important; }
+}
 label, .stTextInput label, .stSelectbox label,
 .stNumberInput label, .stTextArea label,
 .stSlider label, .stRadio label { color: #CBD5E1 !important; }
@@ -223,24 +227,11 @@ hr { border-color: rgba(59,130,246,0.15) !important; }
 
 /* ===== 모바일 반응형 (<=768px) ===== */
 @media (max-width: 768px) {
-    /* 사이드바: 햄버거 복원 + 콘텐츠 위로 덮는 불투명 오버레이 */
-    [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapseButton"] { display: block !important; }
+    /* 사이드바: Streamlit 기본 동작(햄버거/오버레이) 사용 + 불투명·최상단 보장 */
     section[data-testid="stSidebar"] {
-        position: fixed !important; top: 0 !important; left: 0 !important;
-        height: 100vh !important; width: 80vw !important; min-width: 80vw !important;
         z-index: 999999 !important;
         background: #0a1628 !important;
         box-shadow: 6px 0 40px rgba(0,0,0,0.7) !important;
-        transition: transform 0.25s ease !important;
-    }
-    section[data-testid="stSidebar"] > div:first-child { width: 80vw !important; }
-    section[data-testid="stSidebar"][aria-expanded="false"] {
-        transform: translateX(-100%) !important;
-    }
-    /* 메인은 항상 전체 너비 (사이드바가 위로 덮음) */
-    section[data-testid="stMain"], [data-testid="stAppViewContainer"] > .main {
-        margin-left: 0 !important; width: 100% !important;
     }
     /* 컬럼을 세로로 쌓기 (폼·메트릭·카드) */
     [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 8px !important; }
