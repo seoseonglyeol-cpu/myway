@@ -116,12 +116,9 @@ def _render_result(text):
             with st.expander(header, expanded=(i == 0)):
                 st.markdown(body)
     else:
-        # 헤더 분리 실패 시 통째로 카드에 표시
-        st.markdown(f"""
-        <div style="background:rgba(15,23,42,0.6); border:1px solid rgba(59,130,246,0.1); border-radius:16px; padding:28px;">
-            <div style="color:rgba(255,255,255,0.85); font-size:15px; line-height:1.8;">{text}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # 헤더 분리 실패 시 통째로 카드에 표시 (텍스트는 HTML div 안에 넣지 말고 st.markdown으로)
+        with st.container(border=True):
+            st.markdown(text)
 
 
 def show():

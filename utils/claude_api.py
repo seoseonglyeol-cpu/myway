@@ -6,16 +6,39 @@ from groq import Groq
 _client = None
 
 # 한국어 전용 지시어 (모든 호출 system 프롬프트에 자동 주입).
-# 한자/중국어/일본어 문자는 금지하되, 자격증명·회사명 등 고유명사 영문은 허용.
+# 한자/중국어/일본어/러시아어/태국어 등은 금지하되, 자격증명·회사명 등 고유명사 영문은 허용.
 KOREAN_ONLY = (
-    " [언어 규칙] 반드시 한국어(한글)로만 작성하세요. "
-    "한자(漢字), 중국어, 일본어 문자를 절대 사용하지 마세요. "
-    "모든 단어를 한글로 풀어 쓰되(예: 成功 → 성공), "
+    " [CRITICAL RULE] 반드시 한국어(한글)만 사용하세요. "
+    "절대로 중국어(漢字), 일본어, 러시아어, 태국어, 아랍어 등 "
+    "다른 언어의 문자를 섞지 마세요. "
+    "예시: 잘못된 것 '경험을积累합니다' → 올바른 것 '경험을 쌓습니다'; "
+    "잘못된 것 '능력을展示할' → 올바른 것 '능력을 보여줄'; "
+    "잘못된 것 '자격증을เตรียม합니다' → 올바른 것 '자격증을 준비합니다'. "
+    "모든 답변은 100% 순수 한국어로 작성하세요. "
     "자격증명·회사명·기술용어 등 고유명사만 영문 그대로 둬도 됩니다."
 )
 
 # 중국어/일본어 문자 감지 (한글 AC00-D7A3은 제외). CJK 한자 + 가나.
 _NON_KOREAN_CJK = re.compile(r"[぀-ヿ㐀-䶿一-鿿]")
+
+
+def clean_foreign_chars(text):
+    """한글·영문·숫자 외 외국 문자(중국어/일본어/러시아어/태국어/아랍어)를 제거하는 최종 안전망."""
+    if not text:
+        return text
+    # 중국어 간체/번체
+    text = re.sub(r"[一-鿿㐀-䶿]", "", text)
+    # 일본어 히라가나/카타카나
+    text = re.sub(r"[぀-ゟ゠-ヿ]", "", text)
+    # 러시아어/키릴 문자
+    text = re.sub(r"[Ѐ-ӿ]", "", text)
+    # 태국어
+    text = re.sub(r"[฀-๿]", "", text)
+    # 아랍어
+    text = re.sub(r"[؀-ۿ]", "", text)
+    # 연속 공백 정리 (줄바꿈/표 구조는 보존)
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    return text
 
 # LLaMA가 한국어에 자주 섞는 중국어/한자 → 한글 치환 (최종 안전망).
 # 여러 글자 단어를 먼저 치환하도록 순서 유지.
@@ -28,12 +51,13 @@ _KOREANIZE = {
 
 
 def koreanize(text):
-    """남은 흔한 중국어/한자 잔재를 한글로 치환. 완벽하진 않지만 자주 나오는 건 잡는다."""
+    """남은 흔한 중국어/한자 잔재를 한글로 치환 후, 그 외 외국 문자는 제거.
+    캐시된 결과를 렌더할 때도 호출되어 옛 결과까지 정리된다."""
     if not text:
         return text
     for k, v in _KOREANIZE.items():
         text = text.replace(k, v)
-    return text
+    return clean_foreign_chars(text)
 
 
 def _get_api_key():
@@ -86,7 +110,7 @@ def call_ai(prompt, system="", max_tokens=2000):
                 temperature=0.0,
             )
             attempts += 1
-        # 그래도 남은 흔한 한자는 최종 치환으로 정리
+        # 한자는 한글로 치환, 그 외 외국 문자는 제거 (koreanize 안에서 clean_foreign_chars 호출)
         return koreanize(out)
     except Exception as e:
         return f"오류가 발생했어요: {str(e)}"
