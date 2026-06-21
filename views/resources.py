@@ -50,7 +50,6 @@ def show():
 
     profile = st.session_state.user_profile
 
-    # 공부 스케줄에서 정한 목표가 있으면 기본값으로
     default_subject = st.session_state.get("sched_goal", "")
     if default_subject in ("직접 입력", ""):
         default_subject = ""
@@ -64,7 +63,6 @@ def show():
     data = get_resources(subject) if subject else None
 
     if data:
-        # ===== 실제 큐레이션 데이터 =====
         _render_curated(data)
         st.divider()
         st.markdown('<p style="color:#94A3B8; font-size:13px;">내 스펙에 맞춘 추가 팁이 필요하면 AI에게 물어보세요</p>', unsafe_allow_html=True)
@@ -74,7 +72,6 @@ def show():
                 if st.session_state.get("current_user"):
                     save_session(st.session_state.current_user)
     else:
-        # ===== 등록 안 된 자격증 → AI =====
         if subject:
             st.caption("등록된 자격증이 아니어서 AI가 추천해드려요.")
         st.caption("바로 보기: " + ", ".join(list_certs()[:8]) + " 등")

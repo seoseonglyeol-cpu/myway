@@ -2,19 +2,17 @@ from datetime import date
 import streamlit as st
 from utils.session import save_session
 from utils.seniors import match_seniors, get_senior
-from utils.claude_api import generate_semester_plan
+from utils.claude_api import generate_semester_plan, koreanize
 from utils.nav import go_to
 
-# =====================================================================
-# 학기 플래너 — 1차: A(학기 정보 입력) + C(타임라인 UI), 더미 데이터
-# =====================================================================
+
 
 SEM_OPTIONS = [
     "1학년 1학기", "1학년 2학기", "2학년 1학기", "2학년 2학기",
     "3학년 1학기", "3학년 2학기", "4학년 1학기", "4학년 2학기",
 ]
 
-# urgency: (배경, 글자색, 테두리, 이모지, 라벨)
+
 URGENCY = {
     "critical": ("rgba(239,68,68,0.15)", "#fca5a5", "rgba(239,68,68,0.3)", "🔴", "필수"),
     "high":     ("rgba(234,179,8,0.15)", "#fde047", "rgba(234,179,8,0.3)", "🟡", "높음"),
@@ -99,6 +97,18 @@ STYLE = """
 def _clean(html):
     """줄별 공백/빈 줄 제거 후 한 줄로 합쳐 마크다운 코드블록 오인을 방지."""
     return "".join(line.strip() for line in html.splitlines())
+
+
+def _koreanize_plan(plan):
+    """플랜 dict의 모든 문자열 값을 재귀적으로 한국어화(일본어/한자 등 외국 문자 제거).
+    세션에 저장된 옛 플랜이 정제 로직 이전에 만들어진 경우의 최종 안전망."""
+    if isinstance(plan, dict):
+        return {k: _koreanize_plan(v) for k, v in plan.items()}
+    if isinstance(plan, list):
+        return [_koreanize_plan(v) for v in plan]
+    if isinstance(plan, str):
+        return koreanize(plan)
+    return plan
 
 
 def _upcoming_semesters(remaining, today=None):
@@ -393,6 +403,7 @@ def show():
         plan = DUMMY_PLAN
         st.info("아래는 **예시 미리보기**예요. 위에서 선배를 고르고 'AI 학기 플랜 생성'을 누르면 내 맞춤 플랜으로 바뀌어요")
 
+    plan = _koreanize_plan(plan)
     st.markdown(STYLE, unsafe_allow_html=True)
     st.markdown(_clean(_overview_card(plan, remaining)), unsafe_allow_html=True)
     st.markdown(_clean(_immediate_card(plan)), unsafe_allow_html=True)

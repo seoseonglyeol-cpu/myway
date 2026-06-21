@@ -3,21 +3,17 @@ from datetime import date, datetime
 
 def render_progress_cards(data, show_subjects=True):
     """진행률 대시보드 카드 렌더링."""
-    # 학점 진행률
     credit_pct = min(int((data["completed_credits"] / data["total_credits"]) * 100), 100)
     remaining_credits = data["total_credits"] - data["completed_credits"]
 
-    # 학기 진행률
     remaining_semesters = data["total_semesters"] - data["completed_semesters"]
 
-    # D-day 계산
     today = date.today()
     semester_end = datetime.strptime(data["semester_end"], "%Y-%m-%d").date()
     vacation_start = datetime.strptime(data["vacation_start"], "%Y-%m-%d").date()
     days_to_end = (semester_end - today).days
     days_to_vacation = (vacation_start - today).days
 
-    # 메인 카드 - 학점 진행률
     st.markdown(f"""
     <div style="background:linear-gradient(135deg, rgba(30,58,95,0.55), rgba(10,22,40,0.65)); border:1px solid rgba(59,130,246,0.2); border-radius:16px; padding:28px; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -32,7 +28,6 @@ def render_progress_cards(data, show_subjects=True):
     </div>
     """, unsafe_allow_html=True)
 
-    # 서브 카드 4개
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("현재 학점", f"{data['current_gpa']}")
@@ -45,7 +40,6 @@ def render_progress_cards(data, show_subjects=True):
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 학기 진행률 바
     st.markdown(f"""
     <div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:24px;
          border:1px solid rgba(59,130,246,0.2); margin-bottom:16px;">

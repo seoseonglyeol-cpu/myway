@@ -5,7 +5,6 @@ from utils.seniors import match_seniors, get_senior
 from utils.session import save_session
 from utils.nav import go_to
 
-# 단계 헤더에 매칭할 색상/포인트
 STAGE_ACCENTS = ["#3b82f6", "#60a5fa", "#f59e0b", "#22c55e", "#93c5fd", "#a78bfa"]
 
 
@@ -57,7 +56,6 @@ def show():
 
     seniors = match_seniors(profile)
 
-    # 롤모델 선배 선택 (선배 매칭/플래너에서 고른 선배가 있으면 기본값)
     picked_id = None
     if seniors:
         labels = {f"{s['nickname']} · {s['company']} {s['job']}": s["id"] for s in seniors}

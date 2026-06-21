@@ -19,17 +19,19 @@ KOREAN_ONLY = (
 )
 
 # 중국어/일본어 문자 감지 (한글 AC00-D7A3은 제외). CJK 한자 + 가나.
-_NON_KOREAN_CJK = re.compile(r"[぀-ヿ㐀-䶿一-鿿]")
+_NON_KOREAN_CJK = re.compile(r"[぀-ヿㇰ-ㇿｦ-ﾟ㐀-䶿一-鿿]")
 
 
 def clean_foreign_chars(text):
     """한글·영문·숫자 외 외국 문자(중국어/일본어/러시아어/태국어/아랍어)를 제거하는 최종 안전망."""
     if not text:
         return text
-    # 중국어 간체/번체
+    # 중국어 간체/번체 + CJK 확장 A
     text = re.sub(r"[一-鿿㐀-䶿]", "", text)
-    # 일본어 히라가나/카타카나
-    text = re.sub(r"[぀-ゟ゠-ヿ]", "", text)
+    # 일본어 히라가나/카타카나 (전각·반각·확장 포함)
+    text = re.sub(r"[぀-ゟ゠-ヿㇰ-ㇿｦ-ﾟ]", "", text)
+    # 일본어 반복/장음 부호 등 (々〆〇ー)
+    text = re.sub(r"[々〻〆〇]", "", text)
     # 러시아어/키릴 문자
     text = re.sub(r"[Ѐ-ӿ]", "", text)
     # 태국어
