@@ -12,6 +12,16 @@ import urllib.parse
 # =====================================================================
 
 JOBS = [
+    # ===================== 한화에어로스페이스 (항공·방산) =====================
+    # 2026 채용 정보 기반. 접수는 한화인(hanwhain.com) 온라인만. SW직무는 코딩테스트 실시.
+    {"company": "한화에어로스페이스", "title": "2026 상반기 신입 R&D (SW/컴퓨터공학)", "type": "신입 정규직", "location": "경남 창원·분당·대전", "major": "컴퓨터", "certs": ["정보처리기사", "SQLD", "TOEIC Speaking/OPIc"], "note": "SW직무 코딩테스트 실시 · 영어회화자격 필수 · 무인기/우주/항공 SW · 학사 초봉 6,000만", "url": "https://hanwhaaerospace-recruit.com/"},
+    {"company": "한화에어로스페이스", "title": "2026 제조/생산기술 (SW/컴퓨터공학)", "type": "신입 정규직", "location": "경남 창원", "major": "컴퓨터", "certs": ["정보처리기사", "TOEIC Speaking/OPIc"], "note": "생산 SW·자동화/MES · 영어회화자격 필수 · 한화인 접수", "url": "https://hanwhaaerospace-recruit.com/"},
+    {"company": "한화에어로스페이스", "title": "2026 채용연계형 인턴 (SW/컴퓨터공학)", "type": "인턴(8주)→정규직", "location": "경남 창원·분당", "major": "컴퓨터", "certs": ["정보처리기사", "SQLD"], "note": "'27.2 졸업예정자 · 8주 인턴 후 2차면접→정규직 · 코딩테스트", "url": "https://hanwhaaerospace-recruit.com/"},
+    {"company": "한화에어로스페이스", "title": "AI Research 석·박사 특별채용", "type": "신입(석·박사)", "location": "분당·대전", "major": "컴퓨터", "certs": ["빅데이터분석기사"], "note": "AI 연구(비전/자율/위성영상 등) · 석·박사 대상", "url": "https://hanwhaaerospace-recruit.com/"},
+    {"company": "한화에어로스페이스", "title": "2026 전사 경력 수시채용 (R&D · SW)", "type": "경력", "location": "전국", "major": "컴퓨터", "certs": ["정보처리기사", "정보보안기사"], "note": "상시 채용 · 우주/MDS/MRO/무인기/드론TF SW · 평균연봉 높음", "url": "https://www.hanwhain.com"},
+    {"company": "한화에어로스페이스", "title": "2026 상반기 신입 R&D (기계/항공)", "type": "신입 정규직", "location": "경남 창원·여수", "major": "기계", "certs": ["일반기계기사", "TOEIC Speaking/OPIc"], "note": "항공엔진·발사체·친환경 엔진 · 영어회화자격 필수", "url": "https://hanwhaaerospace-recruit.com/"},
+    {"company": "한화에어로스페이스", "title": "2026 상반기 신입 R&D (전기/전자)", "type": "신입 정규직", "location": "경남 창원·분당", "major": "전기전자", "certs": ["전자기사", "TOEIC Speaking/OPIc"], "note": "항공·방산 전장/제어 · 영어회화자격 필수", "url": "https://hanwhaaerospace-recruit.com/"},
+
     # ===================== 전기전자공학과 =====================
     {"company": "한국전력공사(KEPCO)", "title": "2026년도 상반기 대졸수준 신입사원 채용", "type": "신입 정규직", "location": "전국", "major": "전기전자", "certs": ["전기기사", "전기공사기사"], "note": "사무·배전·송변전·ICT·토목·건축·SW특화전형 등, 기사 자격가점"},
     {"company": "한국수력원자력(한수원)", "title": "2026년도 제1차 신입사원(대졸수준) 선발", "type": "신입 정규직", "location": "전국", "major": "전기전자", "certs": ["전기기사", "전기공사기사"], "note": "총 210명 (전기전자 직렬 포함), 쌍기사 우대"},
@@ -134,6 +144,6 @@ def search_jobs(keyword="", count=20, major=""):
             "location": j["location"],
             "tags": j.get("certs", []),
             "note": j.get("note", ""),
-            "url": _search_url(j["company"]),
+            "url": j.get("url") or _search_url(j["company"]),
         })
     return results

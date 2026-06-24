@@ -94,6 +94,30 @@ SENIORS = [
         "courseRecommendation": ["정보보안개론", "시스템보안", "컴퓨터네트워크", "암호학"],
     },
 
+    {
+        "id": 18, "nickname": "한화 R&D 멘토", "major": "응용정보공학과", "field": "항공·방산 SW",
+        "gpa": 3.7, "english": "토익 830 · OPIc IM3",
+        "company": "한화에어로스페이스", "job": "R&D SW개발 (항공·방산)",
+        "certificates": ["정보처리기사", "SQLD"],
+        "activities": ["방산·항공 도메인 사이드 프로젝트(임베디드/관제 SW)", "코딩테스트 대비 알고리즘 스터디 1년",
+                       "영어 회화자격(OPIc IM3) 취득", "회사 분석(IR·ESG북·보도자료) 스터디", "공학계열 공모전 참여"],
+        "synthetic": True,
+        "courses": [
+            {"name": "정보프로그래밍기초", "category": "전공필수", "grade": "A+", "importance": "핵심"},
+            {"name": "객체지향정보프로그래밍", "category": "전공필수", "grade": "A0", "importance": "핵심"},
+            {"name": "응용자료구조", "category": "전공필수", "grade": "A+", "importance": "핵심"},
+            {"name": "알고리즘응용", "category": "전공선택", "grade": "A+", "importance": "핵심"},
+            {"name": "컴퓨터네트워크", "category": "전공선택", "grade": "A0", "importance": "핵심"},
+            {"name": "데이터베이스개론", "category": "전공선택", "grade": "A0", "importance": "권장"},
+            {"name": "응용정보컴퓨팅시스템", "category": "전공선택", "grade": "A0", "importance": "권장"},
+            {"name": "정보SW공학", "category": "전공선택", "grade": "B+", "importance": "일반"},
+        ],
+        "doubleMajor": {"has": False, "field": "", "credits": "", "status": ""},
+        "minor": {"has": False, "field": "", "credits": "", "status": ""},
+        "keyAdvice": "한화에어로스페이스 SW 직무는 서류 합격 후 코딩테스트가 당락을 가릅니다. 응용자료구조·알고리즘응용을 A 이상으로 잡고 코테를 꾸준히 푸세요. 영어회화자격(OPIc/토익스피킹)은 지원 필수 요건이라 미리 취득하고, 자소서·면접은 '왜 방산인가'와 본인 경험을 직무에 연결하는 데 집중하세요. ※ 실제 개인이 아니라 잡코리아 합격자 평균 스펙을 기반으로 만든 참고용 멘토 프로필입니다.",
+        "courseRecommendation": ["응용자료구조", "알고리즘응용", "컴퓨터네트워크", "데이터베이스개론"],
+    },
+
     # ===== 컴퓨터과학 =====
     {
         "id": 4, "nickname": "서연 선배", "major": "컴퓨터과학과", "field": "IT/개발",
