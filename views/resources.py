@@ -2,7 +2,7 @@ import streamlit as st
 from utils.claude_api import recommend_resources, koreanize
 from utils.session import save_session
 from utils.nav import go_to
-from utils.resources_data import get_resources, list_certs
+from utils.resources_data import get_resources, get_resources_by_label, list_certs
 
 
 def _md_table(headers, rows):
@@ -50,17 +50,44 @@ def show():
 
     profile = st.session_state.user_profile
 
+    cert_labels = list_certs()
+    PLACEHOLDER = "— 목록에서 선택하거나 직접 입력 —"
+    DIRECT = "✏️ 직접 입력 (목록에 없는 자격증)"
+    options = [PLACEHOLDER] + cert_labels + [DIRECT]
+
+    # 다른 페이지(공부 스케줄)에서 넘어온 기본 과목이 있으면 자동 선택
     default_subject = st.session_state.get("sched_goal", "")
     if default_subject in ("직접 입력", ""):
         default_subject = ""
+    pre = get_resources(default_subject) if default_subject else None
+    if pre:
+        default_idx = options.index(pre["label"])
+    elif default_subject:
+        default_idx = options.index(DIRECT)
+    else:
+        default_idx = 0
 
-    subject = st.text_input(
+    choice = st.selectbox(
         "어떤 과목 · 자격증을 공부하려고 해요?",
-        value=default_subject,
-        placeholder="예: SQLD, 정보처리기사, 전기기사, 치과위생사",
+        options,
+        index=default_idx,
+        help="자주 찾는 자격증은 목록에 정리돼 있어요. 목록에 없으면 '직접 입력'으로 AI 추천을 받을 수 있어요.",
     )
 
-    data = get_resources(subject) if subject else None
+    if choice == DIRECT:
+        subject = st.text_input(
+            "자격증·과목명을 입력하세요",
+            value=default_subject,
+            placeholder="예: 정보보안기사, 컴활 1급, 한국사능력검정",
+        )
+        data = get_resources(subject) if subject else None
+    elif choice == PLACEHOLDER:
+        subject = ""
+        data = None
+        st.caption(f"📚 목록에 {len(cert_labels)}개 자격증이 정리돼 있어요. 위에서 골라보세요.")
+    else:
+        subject = choice
+        data = get_resources_by_label(choice)
 
     if data:
         _render_curated(data)
@@ -71,11 +98,9 @@ def show():
                 st.session_state.resources_result = recommend_resources(profile, subject)
                 if st.session_state.get("current_user"):
                     save_session(st.session_state.current_user)
-    else:
-        if subject:
-            st.caption("등록된 자격증이 아니어서 AI가 추천해드려요.")
-        st.caption("바로 보기: " + ", ".join(list_certs()[:8]) + " 등")
-        if st.button("AI 추천 받기", type="primary", use_container_width=True, disabled=not subject):
+    elif subject:
+        st.caption("등록된 자격증이 아니어서 AI가 추천해드려요.")
+        if st.button("AI 추천 받기", type="primary", use_container_width=True):
             with st.spinner("AI가 최적의 리소스를 찾고 있어요..."):
                 st.session_state.resources_result = recommend_resources(profile, subject)
                 if st.session_state.get("current_user"):

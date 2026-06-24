@@ -4,6 +4,7 @@ from utils.claude_api import generate_roadmap, koreanize
 from utils.seniors import match_seniors, get_senior
 from utils.session import save_session
 from utils.nav import go_to
+from utils.ui import pop_summary, render_summary
 
 STAGE_ACCENTS = ["#3b82f6", "#60a5fa", "#f59e0b", "#22c55e", "#93c5fd", "#a78bfa"]
 
@@ -11,6 +12,9 @@ STAGE_ACCENTS = ["#3b82f6", "#60a5fa", "#f59e0b", "#22c55e", "#93c5fd", "#a78bfa
 def _render_roadmap(text):
     """AI 마크다운(## 섹션)을 단계별 카드로 렌더. 본문은 st.markdown으로 정상 렌더."""
     text = koreanize(text)
+    # 상단 '한눈에 요약' 카드 — 단계 카드 위에 강조 렌더
+    summary, text = pop_summary(text)
+    render_summary(summary)
     parts = re.split(r"\n(?=##\s)", text.strip())
     sections = [p.strip() for p in parts if p.strip().startswith("##")]
     if not sections:

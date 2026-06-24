@@ -242,3 +242,11 @@ def get_resources(subject):
 def list_certs():
     """등록된 자격증 라벨 목록."""
     return [v["label"] for v in STUDY_RESOURCES.values()]
+
+
+def get_resources_by_label(label):
+    """라벨이 정확히 일치하는 자격증 데이터를 반환(드롭다운 선택용). 없으면 None."""
+    for v in STUDY_RESOURCES.values():
+        if v["label"] == label:
+            return v
+    return None

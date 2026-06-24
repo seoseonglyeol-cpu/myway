@@ -71,6 +71,9 @@ def render_progress_cards(data, show_subjects=True):
 
 def _input_form():
     """진행률 정보 입력 폼."""
+    # 스펙 입력에 이미 넣은 학점은 다시 묻지 않고 기본값으로 가져온다
+    _profile = st.session_state.get("user_profile") or {}
+    _prof_gpa = float(_profile.get("gpa") or 0.0)
     with st.form("progress_form"):
         st.subheader("학점 정보")
         col1, col2 = st.columns(2)
@@ -78,7 +81,10 @@ def _input_form():
             total_credits = st.number_input("졸업 필요 학점", min_value=100, max_value=200, value=130)
             completed_credits = st.number_input("현재 이수 학점", min_value=0, max_value=200, value=0)
         with col2:
-            current_gpa = st.number_input("현재 평균 학점 (4.5 기준)", min_value=0.0, max_value=4.5, step=0.01, value=0.0)
+            current_gpa = st.number_input(
+                "현재 평균 학점 (4.5 기준)", min_value=0.0, max_value=4.5, step=0.01, value=_prof_gpa,
+                help="스펙 입력의 학점을 가져왔어요. 필요하면 수정하세요." if _prof_gpa else None,
+            )
             target_gpa = st.number_input("목표 학점", min_value=0.0, max_value=4.5, step=0.01, value=4.0)
 
         st.divider()

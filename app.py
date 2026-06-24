@@ -427,21 +427,8 @@ if page == "홈":
     with col4:
         st.metric("학년", grade)
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<p style="color:#F1F5F9; font-size:18px; font-weight:700; margin-bottom:16px;">빠른 시작</p>', unsafe_allow_html=True)
-    from utils.nav import go_to
-    c5, c6, c7 = st.columns(3)
-    with c5:
-        st.markdown('<div style="background:rgba(59,130,246,0.12); border-radius:16px; padding:24px; border:1px solid rgba(59,130,246,0.35); height:120px;"><p style="color:#60a5fa; font-size:14px; font-weight:700; margin:0;">STEP 1</p><p style="color:#F1F5F9; font-size:18px; font-weight:700; margin:8px 0 4px 0;">스펙 입력</p><p style="color:#94A3B8; font-size:13px; margin:0;">학교, 학점, 목표 직무 등 기본 정보를 입력하세요</p></div>', unsafe_allow_html=True)
-        if st.button("스펙 입력하러 가기", use_container_width=True, key="home_go_onb"):
-            go_to("스펙 입력")
-    with c6:
-        st.markdown('<div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:24px; border:1px solid rgba(59,130,246,0.15); height:120px;"><p style="color:#94A3B8; font-size:14px; font-weight:700; margin:0;">STEP 2</p><p style="color:#F1F5F9; font-size:18px; font-weight:700; margin:8px 0 4px 0;">AI 분석</p><p style="color:#94A3B8; font-size:13px; margin:0;">AI가 목표 직무 대비 준비도를 분석해드려요</p></div>', unsafe_allow_html=True)
-        if st.button("스펙 분석 받기", use_container_width=True, key="home_go_analysis"):
-            go_to("스펙 분석")
-    with c7:
-        st.markdown('<div style="background:rgba(15,27,46,0.6); border-radius:16px; padding:24px; border:1px solid rgba(59,130,246,0.15); height:120px;"><p style="color:#94A3B8; font-size:14px; font-weight:700; margin:0;">STEP 3</p><p style="color:#F1F5F9; font-size:18px; font-weight:700; margin:8px 0 4px 0;">로드맵 받기</p><p style="color:#94A3B8; font-size:13px; margin:0;">맞춤 로드맵과 공부 스케줄을 자동으로 받으세요</p></div>', unsafe_allow_html=True)
-        if st.button("로드맵 만들러 가기", use_container_width=True, key="home_go_roadmap"):
-            go_to("로드맵")
+    from views.home import quick_start
+    quick_start()
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div style="background:linear-gradient(135deg, #0a1628, #1e3a5f); border:1px solid rgba(59,130,246,0.25); border-radius:16px; padding:32px; text-align:center;"><p style="color:#60a5fa; font-size:14px; font-weight:600; margin:0; letter-spacing:2px;">MY WAY</p><p style="color:#FFFFFF; font-size:20px; font-weight:700; margin:8px 0 0 0;">기존 서비스는 정보를 보여주지만, 마이웨이는 판단하고 행동한다</p></div>', unsafe_allow_html=True)
 elif page == "내 할 일":
@@ -472,29 +459,54 @@ elif page == "채용공고 탐색":
     from views.crawling import show
     show()
 
-# 모바일 UX: 상호작용(메뉴 선택/버튼 클릭)마다 메뉴 닫고 맨 위로 스크롤
+# 페이지가 바뀌면(메뉴 클릭/이동) 맨 위로 스크롤. 모바일은 추가로 메뉴를 닫는다.
+_page_changed = st.session_state.get("_rendered_page") != page
+st.session_state._rendered_page = page
+_scroll_js = "true" if _page_changed else "false"
 components.html(
-    """
+    f"""
     <script>
-    (function () {
+    (function () {{
       const p = window.parent;
-      if (!p || p.innerWidth > 768) return;
+      if (!p) return;
       const doc = p.document;
-      setTimeout(function () {
-        // 1) 메인 영역 맨 위로
-        const main = doc.querySelector('section.main, [data-testid="stMain"], [data-testid="stAppViewContainer"]');
-        if (main && main.scrollTo) main.scrollTo({ top: 0 });
-        if (p.scrollTo) p.scrollTo({ top: 0 });
-        // 2) 사이드바가 열려 있으면 닫기
-        const sb = doc.querySelector('section[data-testid="stSidebar"]');
-        if (sb && sb.getAttribute('aria-expanded') === 'true') {
-          const btn = doc.querySelector('[data-testid="stSidebarCollapseButton"] button')
-                   || doc.querySelector('[data-testid="stSidebarCollapseButton"]')
-                   || sb.querySelector('button');
-          if (btn) btn.click();
-        }
-      }, 60);
-    })();
+      const isMobile = p.innerWidth <= 768;
+      const doScroll = {_scroll_js} || isMobile;  // 페이지 변경 시(전 기기) + 모바일은 항상
+      const SELECTORS = [
+        'section.main', '.main', '.appview-container',
+        '[data-testid="stMain"]', '[data-testid="stMainBlockContainer"]',
+        '[data-testid="stAppViewContainer"]', '[data-testid="stAppViewBlockContainer"]'
+      ];
+      function toTop() {{
+        try {{
+          p.scrollTo(0, 0);
+          doc.documentElement.scrollTop = 0;
+          doc.body.scrollTop = 0;
+          SELECTORS.forEach(function (sel) {{
+            doc.querySelectorAll(sel).forEach(function (el) {{
+              el.scrollTop = 0;
+              if (el.scrollTo) el.scrollTo({{ top: 0 }});
+            }});
+          }});
+        }} catch (e) {{}}
+      }}
+      // 1) 맨 위로 — 렌더 타이밍 보정용으로 여러 번 시도
+      if (doScroll) {{
+        [0, 80, 200, 400].forEach(function (t) {{ setTimeout(toTop, t); }});
+      }}
+      // 2) 모바일에서 사이드바가 열려 있으면 닫기
+      if (isMobile) {{
+        setTimeout(function () {{
+          const sb = doc.querySelector('section[data-testid="stSidebar"]');
+          if (sb && sb.getAttribute('aria-expanded') === 'true') {{
+            const btn = doc.querySelector('[data-testid="stSidebarCollapseButton"] button')
+                     || doc.querySelector('[data-testid="stSidebarCollapseButton"]')
+                     || sb.querySelector('button');
+            if (btn) btn.click();
+          }}
+        }}, 60);
+      }}
+    }})();
     </script>
     """,
     height=0,

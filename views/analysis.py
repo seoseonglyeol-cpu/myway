@@ -3,6 +3,7 @@ import streamlit as st
 from utils.claude_api import analyze_spec, koreanize
 from utils.session import save_session
 from utils.nav import go_to
+from utils.ui import pop_summary, render_summary
 
 def show():
     st.title("스펙 분석")
@@ -42,13 +43,30 @@ def show():
             '</div>',
             unsafe_allow_html=True,
         )
-        # 완성도(%)는 메트릭으로 보여주고 본문에서는 제거
-        m = re.search(r"완성도[^\d]*(\d{1,3})\s*%", result)
-        if m:
-            st.metric("목표 직무 대비 준비도", f"{max(0, min(100, int(m.group(1))))}%")
-            result = re.sub(r".*완성도[^\d]*\d{1,3}\s*%.*\n?", "", result, count=1)
-        with st.container(border=True):
-            st.markdown(result)
+        # 완성도 줄은 본문에서 제거하고, 수치는 전역 준비도(compute_readiness)로 통일
+        result = re.sub(r".*완성도[^\d]*\d{1,3}\s*%.*\n?", "", result, count=1)
+        from utils.metrics import compute_readiness
+        readiness = compute_readiness(st.session_state)
+        if readiness is not None:
+            st.metric("준비도", f"{readiness}%")
+
+        # 상단 '한눈에 요약' 카드 — 본문에서 떼어내 강조 렌더
+        summary, result = pop_summary(result)
+        render_summary(summary)
+
+        # ## 섹션을 아코디언으로 분리 — 첫 섹션만 펼치고 나머지는 접어 한눈에 보이게
+        parts = re.split(r"\n(?=##\s)", result.strip())
+        sections = [p.strip() for p in parts if p.strip().startswith("##")]
+        if sections:
+            for i, sec in enumerate(sections):
+                split = sec.split("\n", 1)
+                header = split[0].lstrip("#").strip()
+                body = split[1].strip() if len(split) > 1 else ""
+                with st.expander(header, expanded=(i == 0)):
+                    st.markdown(body)
+        else:
+            with st.container(border=True):
+                st.markdown(result)
 
         st.markdown('<p style="color:#94A3B8; font-size:13px;">다음 단계로 이어가 보세요</p>', unsafe_allow_html=True)
         n1, n2 = st.columns(2)

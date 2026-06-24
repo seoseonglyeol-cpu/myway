@@ -4,6 +4,7 @@ from utils.seniors import match_seniors, get_senior
 from utils.claude_api import compare_with_senior, koreanize
 from utils.session import save_session
 from utils.nav import go_to
+from utils.ui import pop_summary, render_summary
 
 
 def _track_text(track):
@@ -82,12 +83,11 @@ def _compare_table(profile, s):
 
 # ===== AI 갭 분석 결과 렌더 (완성도 게이지 + 아코디언) =====
 def _render_result(text):
+    from utils.metrics import compute_readiness
     text = koreanize(text)
-    # 완성도 파싱
-    pct = None
-    m = re.search(r"완성도[^\d]*(\d{1,3})\s*%", text)
-    if m:
-        pct = max(0, min(100, int(m.group(1))))
+    # 완성도 줄은 본문에서 제거하고, 수치는 전역 준비도로 통일 (앱 전체 동일 숫자)
+    text = re.sub(r".*완성도[^\d]*\d{1,3}\s*%.*\n?", "", text, count=1)
+    pct = compute_readiness(st.session_state)
 
     if pct is not None:
         st.markdown(f"""
@@ -102,8 +102,10 @@ def _render_result(text):
             </div>
         </div>
         """, unsafe_allow_html=True)
-        # 게이지 위에 쓴 완성도 줄은 본문에서 제거
-        text = re.sub(r".*완성도[^\d]*\d{1,3}\s*%.*\n?", "", text, count=1)
+
+    # 상단 '한눈에 요약' 카드 — 게이지 아래, 상세 분석 위에 강조 렌더
+    summary, text = pop_summary(text)
+    render_summary(summary)
 
     # 섹션을 아코디언으로 분리 (## 헤더 기준)
     parts = re.split(r'\n(?=##\s)', text.strip())

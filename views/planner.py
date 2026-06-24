@@ -287,10 +287,13 @@ def show():
     st.markdown('<p style="color:#FFFFFF; font-size:16px; font-weight:700;">🎓 내 학기 정보</p>', unsafe_allow_html=True)
 
     info = st.session_state.get("semester_info", {})
+    # 스펙 입력의 학년을 기본 학기로 사용 (다시 고르지 않도록)
+    _grade = (st.session_state.get("user_profile") or {}).get("grade")
+    _grade_default = {"1학년": 0, "2학년": 2, "3학년": 4, "4학년": 6, "졸업생": 7}.get(_grade, 4)
     a1, a2, a3 = st.columns(3)
     with a1:
         cur_sem = st.selectbox("현재 학년/학기", SEM_OPTIONS,
-                               index=SEM_OPTIONS.index(info["currentSemester"]) if info.get("currentSemester") in SEM_OPTIONS else 4)
+                               index=SEM_OPTIONS.index(info["currentSemester"]) if info.get("currentSemester") in SEM_OPTIONS else _grade_default)
     with a2:
         grad_year = st.selectbox("졸업 예정 연도", list(range(2025, 2031)),
                                  index=(info.get("graduationYear", 2027) - 2025))
